@@ -1,0 +1,31 @@
+{
+  "name": "rxjs-collections",
+  "version": "2.2.0",
+  "peerDependencies": {
+    "rxjs": ">6.0.0"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "optionalDependencies": {
+    "immer": ">9.0.0"
+  },
+  "description": "A collection of Typescript Maps and Sets that publish changes in their state (entries added, modified or deleted) using RxJS Observables.",
+  "keywords": [
+    "rxjs",
+    "typescript",
+    "idset",
+    "set",
+    "observable"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/abreits/rxjs-collections.git"
+  },
+  "author": "Ab Reitsma",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/abreits/rxjs-collections/issues"
+  },
+  "homepage": "https://github.com/abreits/rxjs-collections/blob/main/projects/rxjs-collections/README.md"
+}
