@@ -3,23 +3,23 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "rxjs-collections": {
+    "rxjs-idsets": {
       "projectType": "library",
-      "root": "projects/rxjs-collections",
-      "sourceRoot": "projects/rxjs-collections/src",
+      "root": "projects/rxjs-idsets",
+      "sourceRoot": "projects/rxjs-idsets/src",
       "prefix": "lib",
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:ng-packagr",
           "options": {
-            "project": "projects/rxjs-collections/ng-package.json"
+            "project": "projects/rxjs-idsets/ng-package.json"
           },
           "configurations": {
             "production": {
-              "tsConfig": "projects/rxjs-collections/tsconfig.lib.prod.json"
+              "tsConfig": "projects/rxjs-idsets/tsconfig.lib.prod.json"
             },
             "development": {
-              "tsConfig": "projects/rxjs-collections/tsconfig.lib.json"
+              "tsConfig": "projects/rxjs-idsets/tsconfig.lib.json"
             }
           },
           "defaultConfiguration": "production"
@@ -27,9 +27,9 @@
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "main": "projects/rxjs-collections/src/test.ts",
-            "tsConfig": "projects/rxjs-collections/tsconfig.spec.json",
-            "karmaConfig": "projects/rxjs-collections/karma.conf.js"
+            "main": "projects/rxjs-idsets/src/test.ts",
+            "tsConfig": "projects/rxjs-idsets/tsconfig.spec.json",
+            "karmaConfig": "projects/rxjs-idsets/karma.conf.js"
           }
         },
         "lint": {

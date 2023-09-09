@@ -1,18 +1,18 @@
 {
-  "name": "rxjs-collections-buildpack",
+  "name": "rxjs-idsets-buildpack",
   "version": "0.9.0",
-  "description": "Buildpack for rxjs-collections, a collection of Typescript Maps and Sets that publish changes in their state (entries added, modified or deleted) using RxJS Observables.",
+  "description": "Buildpack for rxjs-idsets, a number of Typescript Sets that publish changes in their state (entries added, created, updated or deleted) using RxJS Observables.",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "lint": "eslint projects/rxjs-collections/src",
+    "lint": "eslint projects/rxjs-idsets/src",
     "test": "ng test",
     "coverage": "ng test --code-coverage",
     "test-ci": "ng test --no-watch --no-progress --browsers=ChromeHeadless --code-coverage",
     "build-ci": "npm run lint && npm run test-ci && ng build",
-    "publish": "npm login && npm run build-ci && cd ./dist/rxjs-collections && npm publish && cd ../.."
+    "publish": "npm login && npm run build-ci && cd ./dist/rxjs-idsets && npm publish && cd ../.."
   },
   "dependencies": {
     "rxjs": "~7.5.0",

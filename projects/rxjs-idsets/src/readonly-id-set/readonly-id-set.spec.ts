@@ -1,4 +1,4 @@
-import { IdObject } from 'rxjs-collections';
+import { IdObject } from '../types';
 import { ReadonlyIdSet } from './readonly-id-set';
 
 const testSet = [{ id: '1' }, { id: '2' }, { id: '3' }];
