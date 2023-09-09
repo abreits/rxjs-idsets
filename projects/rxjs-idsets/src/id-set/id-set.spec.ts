@@ -199,6 +199,13 @@ describe('IdSet', () => {
   });
 
   describe('clear', () => {
+    it('should remove the IdSet values', () => {
+      const testObject = new IdSet(idSet123);
+
+      expect(testObject.clear()).toBe(testObject);
+      expect(testObject.size).toBe(0);
+    });
+
     it('should remove the IdSet values and publish deletions', () => {
       const testObject = new IdSet(idSet123);
       const deletedValues: IdObject[] = [];

@@ -202,6 +202,12 @@ describe('ReadonlyIdSet', () => {
       expect(keys).toEqual(testSetKeys);
     });
 
+    it('should implement values()', () => {
+      const testObject = new ReadonlyIdSet(testSet);
+      const values = [...testObject.values()];
+      expect(values).toEqual(testSet);
+    });
+
     it('should implement [Symbol.iterator]()', () => {
       const testObject = new ReadonlyIdSet(testSet);
       const content = [...testObject] as any;

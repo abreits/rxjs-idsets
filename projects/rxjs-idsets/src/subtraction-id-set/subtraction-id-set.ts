@@ -53,12 +53,6 @@ export class SubtractionIdSet<IdValue extends IdObject<Id>, Id = string> extends
     });
   }
 
-  protected mightComplete() {
-    if (this.deleteSubscriber.closed && this.subtractionDeleteSubscriber.closed) {
-      this.complete();
-    }
-  }
-
   override complete() {
     this.addSubscriber.unsubscribe();
     this.deleteSubscriber.unsubscribe();

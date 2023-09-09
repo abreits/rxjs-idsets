@@ -46,15 +46,28 @@ describe('SubtractionIdSet', () => {
       expect(testObject.get(value1.id)).toBe(value1);
     });
 
-    it('should complete subscriptions to itself if all its sources are completed', () => {
-      const subscription = testObject.create$.subscribe();
-      expect(subscription.closed).toBeFalse();
-      set1.complete();
-      expect(subscription.closed).toBeFalse();
-      set2.complete();
-      expect(subscription.closed).toBeFalse();
-      set3.complete();
-      expect(subscription.closed).toBeTrue();
+    describe('complete', () => {
+      it('should complete after all inputs complete, source completed first', () => {
+        const subscription = testObject.create$.subscribe();
+        expect(subscription.closed).toBeFalse();
+        set1.complete();
+        expect(subscription.closed).toBeFalse();
+        set2.complete();
+        expect(subscription.closed).toBeFalse();
+        set3.complete();
+        expect(subscription.closed).toBeTrue();
+      });
+
+      it('should complete after all inputs complete, subtractors completed first', () => {
+        const subscription = testObject.create$.subscribe();
+        expect(subscription.closed).toBeFalse();
+        set2.complete();
+        expect(subscription.closed).toBeFalse();
+        set3.complete();
+        expect(subscription.closed).toBeFalse();
+        set1.complete();
+        expect(subscription.closed).toBeTrue();
+      });
     });
 
     describe('propagate mutations in source IdSets', () => {
@@ -73,6 +86,13 @@ describe('SubtractionIdSet', () => {
         expect(created).toEqual([]);
       });
 
+      it('should remove a value from the set if it is added to one of the subtractsets', () => {
+        set2.add(value1);
+
+        expect(testObject.size).toBe(0);
+        expect(deleted).toEqual([value1]);
+      });
+
       it('should remove a value if it is removed from the sourceset', () => {
         set1.delete(value1.id);
 
@@ -80,11 +100,19 @@ describe('SubtractionIdSet', () => {
         expect(deleted).toEqual([value1]);
       });
 
-      it('should add a value if it is present in hte sourceset and removed from all subtractsets', () => {
+      it('should add a value if it is present in the sourceset and removed from all subtractsets', () => {
         set2.delete(value2.id);
 
         expect(testObject.size).toBe(2);
         expect(created).toEqual([value2]);
+      });
+
+      it('should not add a value if it is present in the sourceset, removed a subtractset, but still present in another subset', () => {
+        set3.add(value2);
+        set2.delete(value2.id);
+
+        expect(testObject.size).toBe(1);
+        expect(created).toEqual([]);
       });
 
       it('should only publish the same update for a value from different source sets once', () => {

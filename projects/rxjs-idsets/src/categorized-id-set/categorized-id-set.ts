@@ -25,7 +25,7 @@ export class CategorizedIdSet<IdValue extends IdObject<Id>, Id = string, Categor
    */
   constructor(values?: OneOrMore<IdValue>, categoriesBelongedTo?: OneOrMore<CategoryIds<Category, Id>>) {
     super();
-    if (values) {
+    if (values && categoriesBelongedTo) {
       this.replace(values, categoriesBelongedTo);
     }
   }
@@ -38,11 +38,11 @@ export class CategorizedIdSet<IdValue extends IdObject<Id>, Id = string, Categor
       oneOrMoreForEach(values, value => {
         oneOrMoreForEach(categories, category => {
           const categoriesBelongedTo = this.getCategoriesBelongedTo(value.id).add(category);
+          super.add(value);
           for (category of categoriesBelongedTo) {
             const categorySet = this.getInternalIdSet(category);
             categorySet.superAdd(value);
           }
-          super.add(value);
         });
       });
     }
@@ -280,22 +280,14 @@ class IdSetCategory<IdValue extends IdObject<Id>, Id = string, Category = string
     super();
   }
 
-  // expose parent methods to CategorizedIdSet
+  // expose needed parent methods to CategorizedIdSet
 
   superAdd(values: OneOrMore<IdValue>) {
     return super.add(values);
   }
 
-  superReplace(values: OneOrMore<IdValue>) {
-    return super.replace(values);
-  }
-
   superDelete(ids: OneOrMore<Id>) {
     return super.delete(ids);
-  }
-
-  superClear() {
-    return super.clear();
   }
 
   // override methods to function inside a CategorizedIdSet
@@ -325,4 +317,3 @@ class IdSetCategory<IdValue extends IdObject<Id>, Id = string, Category = string
     return this;
   }
 }
-

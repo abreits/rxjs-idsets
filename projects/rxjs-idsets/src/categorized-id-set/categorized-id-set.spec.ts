@@ -1,5 +1,6 @@
 import { CategorizedIdSet } from './categorized-id-set';
 import { CategoryIds, IdObject } from '../types';
+import { IntersectionIdSet, SubtractionIdSet, UnionIdSet } from '../public-api';
 
 const value1 = { id: '1', value: 'value1' };
 const value2 = { id: '2', value: 'value2' };
@@ -21,6 +22,20 @@ describe('CategorizedIdSet', () => {
   describe('constructor', () => {
     it('should create', () => {
       expect(new CategorizedIdSet()).toBeDefined();
+    });
+
+    it('should create an empty set if no categoriesBelongedTo are defined', () => {
+      const categorizedIdSet = new CategorizedIdSet([value1, value2]);
+      expect(categorizedIdSet.size).toBe(0);
+    });
+
+    it('should create a populated set according to categoriesBelongedTo', () => {
+      const categoriesBelongedTo: CategoryIds = {
+        category: 'category1',
+        ids: [value1.id, value2.id]
+      };
+      const categorizedIdSet = new CategorizedIdSet([value1, value2], categoriesBelongedTo);
+      expect(categorizedIdSet.size).toBe(2);
     });
   });
 
@@ -71,6 +86,14 @@ describe('CategorizedIdSet', () => {
       expect(testObject.categories.get('category1')?.get(value2.id)).toBe(value2);
       expect(testObject.categories.get('category2')?.size).toBe(1);
       expect(testObject.categories.get('category2')?.get(value2.id)).toBe(value2);
+    });
+
+    it('should update an existing updated value in all categories the value belongs to', () => {
+      testObject.add(value1, ['category1', 'category2']);
+      expect(testObject.categories.get('category2')?.get(value1.id)).toBe(value1);
+
+      testObject.add(value1update, 'category1');
+      expect(testObject.categories.get('category2')?.get(value1.id)).toBe(value1update);
     });
 
     it('should publish the added value to the CategorizedIdSet and the IdSet of the category', () => {
@@ -316,6 +339,10 @@ describe('CategorizedIdSet', () => {
       expect(testObject.categoriesBelongedTo(value1.id)?.size).toBe(1);
       expect(testObject.categoriesBelongedTo(value1.id)?.has('category2')).toBeTrue();
     });
+
+    it('should return undefined if a value with the specified id does not exist', () => {
+      expect(testObject.categoriesBelongedTo(value1.id)).toBeUndefined();
+    });
   });
 
   describe('getIdSet', () => {
@@ -336,6 +363,42 @@ describe('CategorizedIdSet', () => {
       expect(category1Set.get(value1.id)).toBe(value1);
 
       expect(testObject.categories.get('category1')).toBe(category1Set);
+    });
+  });
+
+  describe('union', () => {
+    it('should return a UnionIdSet for the specified categories', () => {
+      testObject.add([value1, value2], 'category1');
+      testObject.add([value2, value3], 'category2');
+      testObject.add([value1, value4], 'category3');
+
+      const union = testObject.union(['category1', 'category2']);
+      expect(union instanceof UnionIdSet).toBeTrue();
+      expect(union.size).toBe(3);
+    });
+  });
+
+  describe('intersection', () => {
+    it('should return a IntersectionIdSet for the specified categories', () => {
+      testObject.add([value1, value2], 'category1');
+      testObject.add([value1, value2, value3], 'category2');
+      testObject.add([value1, value4], 'category3');
+
+      const intersection = testObject.intersection(['category1', 'category2', 'category3']);
+      expect(intersection instanceof IntersectionIdSet).toBeTrue();
+      expect(intersection.size).toBe(1);
+    });
+  });
+
+  describe('subtraction', () => {
+    it('should return a SubtractionIdSet for the specified categories', () => {
+      testObject.add([value1, value2, value3, value4], 'category1');
+      testObject.add([value3], 'category2');
+      testObject.add([value4], 'category3');
+
+      const intersection = testObject.subtraction('category1', ['category2', 'category3']);
+      expect(intersection instanceof SubtractionIdSet).toBeTrue();
+      expect(intersection.size).toBe(2);
     });
   });
 

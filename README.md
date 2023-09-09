@@ -1,21 +1,21 @@
-# rxjs-collections library buildpack
+# rxjs-idsets library buildpack
 
 This library buildpack was generated with [Angular CLI](https://github.com/angular/angular-cli) version 13.3.0.
 
-The library code itself can be found in the [projects/rxjs-collections](projects/rxjs-collections) directory.
+The library code itself can be found in the [projects/rxjs-idsets](projects/rxjs-idsets) directory.
 
 ## Why us Angular Cli for this library
 
-[Angular CLI](https://github.com/angular/angular-cli) provides an easy way to setup the scaffolding for the generic rxjs-collections Typescript library that just works out of the box.
+[Angular CLI](https://github.com/angular/angular-cli) provides an easy way to setup the scaffolding for the generic rxjs-idsets Typescript library that just works out of the box.
 
 This is both because I as the author am familiar with the Angular ecosystem, but also because it makes it easy to create a working NPM library.
 
-I have tried to remove all unused Angular packages from the root `package.json` in order to try to minimize the space used to build the `rxjs-collections` library.
+I have tried to remove all unused Angular packages from the root `package.json` in order to try to minimize the space used to build the `rxjs-idsets` library.
 Unfortunately it remains quite a large project to build this relatively small library.
 
 ## Build
 
-Run `npm run build` to build the project. The build artifacts will be stored in the `dist/rxjs-collections` directory.
+Run `npm run build` to build the project. The build artifacts will be stored in the `dist/rxjs-idsets` directory.
 
 ## Lint
 
@@ -28,7 +28,7 @@ Run `npm test` to execute the unit tests via [Karma](https://karma-runner.github
 ## Running unit tests with code coverage
 
 Run `npm run coverage` to execute the unit tests with code coverage via [Karma](https://karma-runner.github.io).
-Detailed coverage results can be found in the `coverage/rxjs-collections` directory.
+Detailed coverage results can be found in the `coverage/rxjs-idsets` directory.
 
 ## Full build
 
