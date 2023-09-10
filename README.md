@@ -1,6 +1,6 @@
 # rxjs-idsets library buildpack
 
-This library buildpack was generated with [Angular CLI](https://github.com/angular/angular-cli) version 13.3.0.
+This library buildpack was originally generated with [Angular CLI](https://github.com/angular/angular-cli) version 13.3.0 and upgraded to 16.2.1.
 
 The library code itself can be found in the [projects/rxjs-idsets](projects/rxjs-idsets) directory.
 

@@ -1,351 +1,177 @@
-# rxjs-collections <!-- omit in toc -->
+# rxjs-idsets <!-- omit in toc -->
 
-This is a more pure version of my [rxjs-supersets]([https://](https://github.com/abreits/rxjs-supersets) library. It is consists of subsclasses of the [Typescript](https://www.typescriptlang.org/) `Map` and `Set` that publish changes in their state (entries added, modified or deleted) using [RxJS](https://rxjs.dev/) Observables. It also contains a `MultiSet` class in which a single element can be part of multiple (sub)sets.
+If you like to work with [Typescript](), [RxJS](https://rxjs.dev/) and whished you could observe changes to `Set` or `Map` like objects or classes, this library might be worth a look for you.
 
-For the latest changes and the current version see the [Change log](./CHANGELOG.md).
+It is more or less opinionated in that you need to work with values that implement an `IdObject` interface (see the [introduction](#introduction) for more details), and only updates existing values with the same `id` if they are different objects (`newIdValue !== existingIdValue`) but otherwise provides all the functionality (and more) from Typescript Sets and RxJS Observables to keep you informed of changes.
 
 # Table of contents <!-- omit in toc -->
 
 - [Introduction](#introduction)
-- [In detail](#in-detail)
-  - [Maps and Sets](#maps-and-sets)
-  - [RxJS operators](#rxjs-operators)
-  - [RxJS creators](#rxjs-creators)
-  - [Utility functions](#utility-functions)
-  - [DataTypes and Interfaces](#datatypes-and-interfaces)
 - [Examples](#examples)
-  - [DeltaMap example](#deltamap-example)
-  - [operator examples](#operator-examples)
-  - [DeltaSet example](#deltaset-example)
-  - [settings example](#settings-example)
-  - [SuperSet and SimpleSuperSet example](#superset-and-simplesuperset-example)
+  - [Example 1, IdSet](#example-1-idset)
+  - [Example 2, UnionIdSet](#example-2-unionidset)
+  - [Example 3, IntersectionIdSet](#example-3-intersectionidset)
+  - [Example 4, SubtractionIdSet](#example-4-subtractionidset)
+  - [Example 5, CategorizedIdSet](#example-5-categorizedidset)
+- [Reference](#reference)
+  - [IdSet](#idset)
+  - [UnionIdSet](#unionidset)
+  - [IntersectionIdSet](#intersectionidset)
+  - [SubtractionIdSet](#subtractionidset)
+  - [CategorizedIdSet](#categorizedidset)
+  
 # Introduction
 
-TODO: Why this library
+This library provides a number of `IdSet` classes, which are _observable_ extensions of the javascript `Set` _object_.
 
-# Basic element
-
-The basic element that this library functions upon is an `IdObject`, which is just an object with an `id` property, This `id` property is used to uniquely identify the element. When an element with the same `id` is added to a collection and an element with that `id` already exists the existing element is replaced with the newly added element. The default type of an `id` is a string.
-
-
-
-This library was created to support subscribing to streams of updates to a `Map` or `Set`.
-
-`rxjs-collections` contains a number of Typescript `Map` and `Set` subclasses that have an [RxJS](https://rxjs.dev/) `Observable` property `delta$` that you can subscribe to if you want to be informed of the changes taking place in the `Set` or `Map`. It keeps track of addition, modification and deletion of entries in the `Set` or `Map`.
-
-`rxjs-collections` has only one dependency ([tslib](https://github.com/Microsoft/tslib)), one peer dependency ([rxjs](https://rxjs.dev/)) and one optional peer dependency ([immer](https://immerjs.github.io/immer/)).
-
-The content changes are published in `MapDelta` format:
+The `Set` _values_ they work on are objects that _implement_ the `IdObject` _interface_:
 
 ``` typescript
-export interface MapDelta<K, V> {
-  all: ReadonlyMap<K, V>;
-  added: ReadonlyMap<K, V>;
-  deleted: ReadonlyMap<K, V>;
-  modified: ReadonlyMap<K, V>;
+interface IdObject<Id = string> {
+  id: Id
 }
 ```
+This library provides the following `IdSet` classes:
+- **`IdSet`** is the basic _observable_ `Set`
+- **`ReadOnlyIdSet`** is an _observable_ `ReadonlySet` version of the `IdSet`
+- **`UnionIdSet`** is an _observable_ `ReadonlySet` _subclass_ that provides the mathematical union
+  of multiple _source_ `IdSet`'s and keeps it automatically up to date if the contents of the
+  _sources_ change.
+- **`IntersectionIdSet`** is an _observable_ `ReadonlySet` _subclass_ that provides the
+  mathematical intersection of multiple _source_ `IdSet`'s and keeps it automatically up to date if the contents of the _sources_ change.
+- **`SubtractionIdSet`** is an _observable_ `ReadonlySet` _subclass_ that provides the mathematical
+  subtraction of multiple _subtract_ `IdSet`'s from the _source_ `IdSet` and keeps it automatically up to date if the contents of the _source_ or the _subtracts_ change.
+- **`CategorizedIdSet`** places its _values_ in one or more _categories_, it can change the
+  _categories_ a value is member of and if a _value_ is no longer meber of a _category_ it is
+  deleted from the `CategorizedIdSet`. 
 
-The entries returned in a `MapDelta` are defined as  `Readonly` in Typescript.
-This is done as a precaution to prevent accidental in place updating of the entries. 
-The correct way is to create a copy of the entry when updating its properties. There are excellent libraries for this, e.g. [Immer](https://immerjs.github.io/immer/), [immutable-js](https://immutable-js.com/) or [lodash](https://lodash.com/) just to name a few.
+Changes to the above classes can be _observed_ with the following [RxJS](https://rxjs.dev/) Observable properties:
+- **`all$`** returns all _values_ that are currently in the set.
+- **`add$`** returns all _values_ that will be added (both _created_ and _updated_) to the set.
+- **`create$`** returns only the _**new** values_ that will be added and are not already in the set.
+- **`update$`** returns only the _**changed** values_ will be added and are already in the set.
+- **`delete$`** returns the _values_ that will be deleted from the set.
 
-A `processDelta` rxjs operator is provided to help processing the resulting `MapDelta` changes.
+(`{id: Id}`, where Id defaults to a `string`). 
 
-[back to top](#rxjs-collections----omit-in-toc)
+This library was created as a more 'pure' Observable version of my [rxjs-supersets](https://github.com/abreits/rxjs-supersets) library.
 
-# In detail
-
-## Maps and Sets
-- [DeltaMap](./src/delta-map/README.md), a basic observable map
-- [DeltaSet](./src/delta-set/README.md), a set of IdObjects, objects with an 'id' property
-- [SuperSet](./src/super-set/README.md), a set of IdMemberObjects, 'IdObjects' with a `memberOf` property that makes them member of one or more subsets within the `SuperSet` and provides automatic (sub)set operations and management. You can subscribe to the `delta$` of the individual subsets.
-- [SimpleSuperSet](./src/simple-super-set/README.md), a simpler version of of the `SuperSet` that does not have subset subscription.
-
-## RxJS operators
-
-- [filterDelta](./src/operators/filter-delta/README.md) filters all added and modified elements of a _MapDelta_.
-- [groupDelta](./src/operators/group-delta/README.md) moves _MapDelta_ `IdObject` entries into groups and forwards the result as a _MapDelta_.
-- [mapDelta](./src/operators/map-delta/README.md) creates a mapping over all added and modified elements of a _MapDelta_, this can result in another class of `IdObject` for the processed elements.
-- [produceDelta](./src/operators/produce-delta/README.md) creates a mapping over all added and modified elements of a _MapDelta_ using the [immer](https://immerjs.github.io/immer/) `produce` function, this always results in the same class of `IdObject` for the processed elements.
-- [startDelta](./src/operators/start-delta/README.md) makes sure that a new subscription to an existing _DeltaMap_ or _DeltaSet_ always gets the full list of elements in the added property on the first _delta$_ subscription update.
-- [tapDelta](./src/operators/tap-delta/README.md) can create side effects for all added, modified and deleted elements of a _MapDelta_.
-- **Deprecated**: [processDelta](./src/operators/process-delta/README.md) a combination of _startDelta_ and _tapDelta_.
-
-## RxJS creators
-
-- [mergeDelta](./src/creators/merge-delta/README.md) merges multiple `MapDelta`' Observables of the same type to a single `MapDelta` Observable.
-
-## Utility functions
-- [processElements](src/support/process-elements/README.md) allows easy processing of all elements in a `MapDelta`.
-- [createDelta](./src/support/create-delta/README.md) allows easy creation of dummy `MapDelta` structures for unit testing.
-## DataTypes and Interfaces
-
-See [types.ts](./src/types.ts) for the type definitions of the types and interfaces used
-
+For the latest changes and the current version see the [Change log](./CHANGELOG.md).
 
 # Examples
 
-This section contains example code demonstrating how the `rxjs-collections` maps and sets can be used.
+Nothing explains a library better than a few well documented examples, so here they come (hope they are indeed documented enough).
 
-## DeltaMap example
-
-DeltaMap is the basic class that provides the `delta$` observable, the other sets in `rxjs-collections`
-are based on this class.
-``` typescript
-const deltaMap = new DeltaMap<string, Date>();
-deltaMap.set('item1', new Date());
-deltaMap.set('item2', new Date());
-
-// deltaMap.delta$ is a Replaysubject(1), it only returns the last update
-deltaMap.delta$.subscribe(delta => {
-  delta.all; // contains a map with both added entries
-  delta.added; // contains a map with only the latest addition (item2)
-  delta.modified; // contains a map with no entries (nothing modified)
-  delta.deleted; // contains a map with no entries (nothing deleted)
-});
-
-// modify a DeltaMap entry 
-deltaMap.set('item1', new Date());
-
-// latest deltaMap.delta$ update now contains
-deltaMap.delta$.subscribe(delta => {
-  delta.all;     // a map with both entries
-  delta.added; // a map with no entries (nothing added)
-  delta.modified; // a map with item1
-  delta.deleted; // a map with no entries (nothing deleted)
-});
-
-// delete a DeltaMap entry 
-deltaMap.delete('item2');
-
-// latest deltaMap.delta$ update now contains
-deltaMap.delta$.subscribe(delta => {
-  delta.all;     // a map with remaining entry (item1)
-  delta.added; // a map with no entries (nothing added)
-  delta.modified; // a map with no entries (nothing modified)
-  delta.deleted; // a map with item2
-});
-```
-[back to top](#rxjs-collections----omit-in-toc)
-
-## operator examples
-
-RxJS operators have been added to make working with MapDelta's easier.
-``` typescript
-const deltaMap = new DeltaMap<string, Date>();
-deltaMap.set('item1', new Date());
-deltaMap.set('item2', new Date());
-
-// if you want a new subscription to always start with all in the added property
-// you can insert the startDelta() operator
-deltaMap.delta$.pipe(startDelta()).subscribe(delta => {
-  delta.all;     // contains a map with both added entries
-  delta.added; // contains a map with all entries on the first update
-  delta.modified; // contains a map with no entries on the first update
-  delta.deleted; // contains a map with no entries on the first update
-});
-
-// if you do not want to iterate through the updates yourself
-// you can use the tapDelta operator for this
-deltaMap.delta$.pipe(
-  startDelta(),
-  tapDelta({
-    before: () => initUpdate(),     // call before update processing (optional)
-    add: entry => doAdd(entry),    // processes both entries one at a time (optional)
-    modify: entry => doModify(entry), // ignored because there are no entries to process (optional)
-    delete: entry => doDelete(entry), // ignored because there are no entries to process (optional)
-    after: () => completeUpdate()   // call after update processing (optional)
-  })
-).subscribe();
-
-// if you only want to process certain elements of a MapDelta
-// you can use the filterDelta() operator
-deltaMap.delta$.pipe(
-  startDelta(),
-  filterDelta(element => element < Date.now())
-).subscribe(delta => {
-  delta.all;     // contains a map with both added entries
-  delta.added; // contains a map with all entries on the first update
-  delta.modified; // contains a map with no entries on the first update
-  delta.deleted; // contains a map with no entries on the first update
-});
-
-```
-[back to top](#rxjs-collections----omit-in-toc)
-
-## DeltaSet example
-
-`DeltaSet` extends the `DeltaMap`, it treats its contents more as a Set, where the `id` property of its content uniquely identifies the entry in the Set.
+## Example 1, IdSet
 
 ``` typescript
-// an IdObject class to demonstrate te DeltaSet
-class IdContent implements IdObject {
-  constructor (
-    public id: string,
-    public content: string,
-    public extra?: string
-  ) { }
-}
-const item1 = new IdContent('id1','content1');
-const item2 = new IdContent('id2','content2');
-const item3 = new IdContent('id3','content3');
+// create a new set containing 3 values, values implement IdObject interface
+const exampleSet = new IdSet([value1, value2, value3]);
 
-const deltaSet = new DeltaSet<string, IdContent>();
-deltaSet.addMultiple([item1, item2, item3]);
+// subscribe to add$
+exampleSet.all$.subscribe(value => console.log('created or updated', value));
 
-// deltaSet.delta$ is a Replaysubject(1), it only returns the last update
-deltaSet.delta$.subscribe(delta => {
-  delta.all;     // a map with all added entries
-  delta.added; // a map with only the latest addition (item3)
-  delta.modified; // a map with no entries (nothing modified)
-  delta.deleted; // a map with no entries (nothing deleted)
-});
-
-// update an existing entry
-const item2b = new IdDate('id2','content2b');
-deltaSet.add(item2b); // item2 is replaced with item2b
-
-// a subscription would receve the following
-deltaSet.delta$.subscribe(delta => {
-  delta.all;     // a map with all current entries
-  delta.added; // a map with no entries (nothing modified)
-  delta.modified; // a map with item2b
-  delta.deleted; // a map with no entries (nothing deleted)
-});
-
-// you can change (map) the content of all MapDelta elements using the
-// mapDelta() operator. It is best used along the 'immer' library
-import { produce } from 'immer';
-deltaSet.delta$.pipe(
-  mapDelta(element => produce(element, draft => {
-    draft.id += 'm'; // you can even change it's id
-    draft.extra = 'mapped!'; 
-  }))
-).subscribe(delta => {
-  delta.all;     // a map with all mapped entries
-  delta.added; // a map with new mapped entries
-  delta.modified; // a map with modified mapped entries
-  delta.deleted; // a map with deleted mapped entries
-});
-
-// if you return the same object type, you can simplify the above using the produceDelta() operator
-deltaSet.delta$.pipe(
-  produceDelta(draft => {
-    draft.id += 'm'; // you can even change it's id
-    draft.extra = 'mapped!'; 
-  })
-).subscribe();
-
+// start: [value1, value2, value3]
+exampleSet.add(value4);
+// result: [value1, value2, value3, value4]
+exampleSet.add(value1update); 
+// result: [value1update, value2, value3, value4]
+exampleSet.delete(value1.id); 
+// result: [value2, value3, value4]
+exampleSet.replace([value1, value2update, value3]); 
+// result: [value1, value2update, value3]
+exampleSet.clear(); 
+// result: []
+exampleSet.complete();
+// all subscriptions are closed, no updates will be published any more
 ```
-[back to top](#rxjs-collections----omit-in-toc)
+A more complete example for the IdSet can be found in [example1.ts](./examples/example1.ts)
 
-
-## settings example
-
-All `rxjs-collections` Maps and Sets can have settings added to modify their behaviour.
+## Example 2, UnionIdSet
 
 ``` typescript
-// an IdObject class to demonstrate te DeltaSet
-class IdContent implements IdObject {
-  constructor (
-    public id: string,
-    public content: string
-  ) { }
-}
-const item1 = new IdDate('id1','content1');
-const item2 = new IdDate('id2','content2');
-const item3 = new IdDate('id3','content3');
+const set1 = new IdSet([value1, value2]);
+const set2 = new IdSet([value2, value3]);
+const unionSet = new UnionIdSet([set1, set2]);
+// unionSet: [value1, value2, value3]
 
-const deltaSet = new DeltaSet<string, IdContent>({
-  isUpdated: (newItem, existingItem) => newItem.content === existingItem.content,
-  publishEmpty: true
-});
+// subscribe to allAdd$
+unionSet.allAdd$.subscribe(value => console.log('already present, created or updated', value));
 
-// normally a delta$ subscription only starts receiving updates if the set is not empty.
-// if 'publishEmpty' is set to true, initially empty sets also publish updates
-deltaSet.delta$.subscribe(delta => {
-  delta.all;      // a map with no entries (nothing present)
-  delta.added;    // a map with no entries (nothing added)
-  delta.modified; // a map with no entries (nothing modified)
-  delta.deleted;  // a map with no entries (nothing deleted)
-});
-
-deltaSet.addMultiple([item1, item2, item3]);
-// entries added and updates sent to delta$ subscriptions
-
-const item2b = new IdDate('id2','content2');
-deltaSet.add(item2b);
-// item2b will not replace item2 because 'isUpdated' returns false
-// delta$ subscriptions will not receive an update because nothing was changed
-
+set1.add(value4);
+// unionSet: [value1, value2, value3, value4] value4 added to the union
+set1.delete(value2);
+// unionSet: [value1, value2, value3, value4] because value2 is still in set2
+set1.delete(value1);
+// unionSet: [value2, value3, value4] because value1 is not in another union source it is deleted
 ```
-[back to top](#rxjs-collections----omit-in-toc)
 
-
-## SuperSet and SimpleSuperSet example
-
-The `SuperSet` is a collection of entries that each are member of one or more of its subsets.
-It extends the `DeltaSet`. The difference between `SuperSet` and `SimpleSuperSet` is that you can 
-subscribe to the subset `delta$` to receive updates whereas with the `SimpleSuperSet` you cannot do that. 
+## Example 3, IntersectionIdSet
 
 ``` typescript
-// a MemberObject class to demonstrate te SuperSet
-class MemberContent implements MemberObject {
-  public memberOf: Set<string>
-  constructor (
-    public id: string,
-    memberOf: string[],
-    public content: string
-  ) {
-    this.memberOf = new Set(memberOf);
-  }
-}
-const item1 = new MemberContent('id1', ['subset1'], 'content1');
-const item2 = new MemberContent('id2', ['subset1'], 'content2');
-const item3 = new MemberContent('id3', ['subset1'], 'content3');
-const item4 = new MemberContent('id4', ['subset1', 'subset2'], 'content4');
-const item5 = new MemberContent('id5', ['subset2'], 'content5');
-const item6 = new MemberContent('id6', ['subset1', 'subset3'], 'content6');
+const set1 = new IdSet([value1, value2]);
+const set2 = new IdSet([value2, value3]);
+const intersectionSet = new IntersectionIdSet([set1, set2]);
+// unionSet: [value2]
 
-const superSet = new SuperSet<string, MemberContent>();
-const collectionsubscription = superSet.delta$.subscribe();
+// subscribe to delete$
+intersectionSet.delete$.subscribe(value => console.log('deleted', value));
 
-// subscribing to an emty subset creates it
-const subset2Subscription = superSet.subsets.get('subset2').delta$.subscribe();
-
-superSet.addMultiple([item1, item2, item3, item4, item5, item6]);
-// 'subset2Subscription' receives a delta that tells that MemberContent entries with 
-// id4 and id5 have been added.
-// 'collectionsubscription' receives a delta that tells that MemberContent entries with
-// id1, id2, id3, id4, id5 and id6 have been added.
-
-// Subscribing to an exisiting subset returns its members directly after the subscription.
-const subset1Subscription = superSet.subsets.get('subset1').delta$.subscribe();
-// 'subset1Subscription' receives a delta that tells that MemberContent entries with 
-// id1, id2, id3, id4 and id6 are present (in `all` property).
-
-superset.deleteSubsetItems('subset3');
-// All entries in subset3 are removed from the superset and also 
-// removed from all other subsets they are member of.
-// Both 'collectionsubscription' and 'subset1Subscription' receive a delta that tells 
-// that MemberContent entries with id6 was deleted.
-
-superset.subsets.empty('subset2');
-// All entries in subset 2 are removed from the subset, 
-// entries that are no longer in a subset are also removed from the SuperSet.
-// 'subset2Subscription' receives a delta that tells that MemberContent entries with
-// id4 and id5 were deleted.
-// 'collectionsubscription' receives a delta that tells that MemberContent entries with
-// id5 was deleted.
-
-superset.subsets.delete('subset1');
-// All entries in subset 1 are removed from the subset, its `delta` observable is closed,
-// the subset is removed from the SuperSet.
-// 'subset1Subscription' receives a delta that tells that MemberContent entries with
-// id1, id2, id3 and id4 were deleted, after that the subscription is closed.
-// 'collectionsubscription' receives a delta that tells that MemberContent entries with
-// id1, id2, id3 and id4 were deleted.
-
+set1.add(value4);
+// intersectionSet: [value2] value4 is not in all sources, so not added to the intersection
+set1.delete(value1);
+// intersectionSet: [value2] because value3 was not in the intersection
+set1.add(value3);
+// intersectionSet: [value2, value3] because value3 is now in all intersection sources
 ```
-[back to top](#rxjs-collections----omit-in-toc)
+
+## Example 4, SubtractionIdSet
+
+``` typescript
+const sourceSet = new IdSet([value1, value2, value3])
+const subtractSet1 = new IdSet([value1]);
+const subtractSet2 = new IdSet([value2]);
+const subtractionResultSet = new SubtractionIdSet([set1, set2]);
+// subtractionResultSet: [value3]
+
+// subscribe to create$
+subtractionResultSet.create$.subscribe(value => console.log('created new', value));
+
+subtractionResultSet.add(value4);
+// subtractionResultSet: [value3, value4] because value4 is not present in one of the subtractSets
+subtractSet1.add(value4);
+// subtractionResultSet: [value3] because value4 is now present in one of the subtractSets
+subtractSet1.delete(value1);
+// subtractionResultSet: [value1, value3] because value1 is no longer present in one of the subtractSets
+```
+
+## Example 5, CategorizedIdSet
+
+``` typescript
+// TODO!
+```
+
+
+# Reference
+
+The all important 'if all else fails, read the manual' command reference.
+
+## IdSet
+
+TODO!
+
+## UnionIdSet
+
+TODO!
+
+## IntersectionIdSet
+
+TODO!
+
+## SubtractionIdSet
+
+TODO!
+
+## CategorizedIdSet
+
+TODO!

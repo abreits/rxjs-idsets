@@ -20,7 +20,7 @@ export class ReadonlyIdSet<IdValue extends IdObject<Id>, Id = string> {
   /**
    * Observable returning all values currently present
    */
-  get all$() {
+  get all$(): Observable<IdValue> {
     return from(this.idMap.values());
   }
 
@@ -55,7 +55,7 @@ export class ReadonlyIdSet<IdValue extends IdObject<Id>, Id = string> {
   /**
    * Observable returning all values currently present and values added later
    */
-  get allAdd$() {
+  get allAdd$(): Observable<IdValue> {
     return concat(this.all$, this.add$);
   }
 
