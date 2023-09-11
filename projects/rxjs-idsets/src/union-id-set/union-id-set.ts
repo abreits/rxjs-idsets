@@ -8,14 +8,14 @@ export class UnionIdSet<IdValue extends IdObject<Id>, Id = string> extends Reado
   private deleteSubscriber: Subscription;
 
   constructor(
-    public readonly unionSets: Iterable<ReadonlyIdSet<IdValue, Id>>
+    public readonly sourceSets: Iterable<ReadonlyIdSet<IdValue, Id>>
   ) {
     super();
 
     const additions: Observable<IdValue>[] = [];
     const deletions: Observable<IdValue>[] = [];
 
-    for (const unionSet of this.unionSets) {
+    for (const unionSet of this.sourceSets) {
       additions.push(unionSet.allAdd$);
       deletions.push(unionSet.delete$);
     }
@@ -52,7 +52,7 @@ export class UnionIdSet<IdValue extends IdObject<Id>, Id = string> extends Reado
     const currentValue = this.idMap.get(id);
     if (currentValue) {
       let noLongerPresent = true;
-      for (const unionSet of this.unionSets) {
+      for (const unionSet of this.sourceSets) {
         if (unionSet.has(id)) {
           noLongerPresent = false;
           break;

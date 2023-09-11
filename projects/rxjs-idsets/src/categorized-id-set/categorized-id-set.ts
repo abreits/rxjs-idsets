@@ -1,7 +1,7 @@
 import { Subject } from 'rxjs';
-import { CategoryIds, IdObject } from '../types';
+import { IdObject } from '../types';
 import { OneOrMore, oneOrMoreForEach, oneOrMoreToArray, oneOrMoreToIterable } from '../utility/one-or-more';
-import { IdSet, IntersectionIdSet, SubtractionIdSet, UnionIdSet } from '../public-api';
+import { IdSet, IntersectionIdSet, DifferenceIdSet, UnionIdSet } from '../public-api';
 
 /**
  * A Set containing IdObjects that publishes changes through Observables.
@@ -23,10 +23,10 @@ export class CategorizedIdSet<IdValue extends IdObject<Id>, Id = string, Categor
    * Only empty new CategorizedIdSets can be created,
    * Adding values at construction not supported at the moment.
    */
-  constructor(values?: OneOrMore<IdValue>, categoriesBelongedTo?: OneOrMore<CategoryIds<Category, Id>>) {
+  constructor(values?: OneOrMore<IdValue | [IdValue, Iterable<Category>]>, cloneValues = false) {
     super();
-    if (values && categoriesBelongedTo) {
-      this.replace(values, categoriesBelongedTo);
+    if (values) {
+      this.replace(values, cloneValues);
     }
   }
 
@@ -99,43 +99,35 @@ export class CategorizedIdSet<IdValue extends IdObject<Id>, Id = string, Categor
    * 
    * if _categoriesBelongedTo_ does is _undefined_, the _CategorizedIdSet_ will be cleared.
    */
-  override replace(values: OneOrMore<IdValue>, categoriesBelongedTo?: OneOrMore<CategoryIds<Category, Id>>) {
-    if (categoriesBelongedTo) {
-      const valueMap = new Map(oneOrMoreToArray(values).map(value => [value.id, value]));
-      const belongToCategories = new Map<Id, Set<Category>>();
-      // determine categories belonged to for each new id
-      for (const categoryIds of oneOrMoreToIterable(categoriesBelongedTo)) {
-        const category = categoryIds.category;
-        for (const id of categoryIds.ids) {
-          const value = valueMap.get(id);
-          if (value) {
-            const idBelongsTo = belongToCategories.get(id);
-            if (idBelongsTo) {
-              idBelongsTo.add(category);
-            } else {
-              belongToCategories.set(id, new Set([category]));
-            }
-          }
-        }
+  override replace(values: OneOrMore<IdValue | [IdValue, Iterable<Category>]>, cloneValues = false) {
+    const newIds = new Set<Id>();
+    // add new values
+    for (const value of oneOrMoreToIterable(values)) {
+      if (Array.isArray(value)) {
+        const newValue = cloneValues ? structuredClone(value[0]) : value[0];
+        const categories = value[1];
+        this.replaceCategories(newValue, categories);
+        newIds.add(newValue.id);
       }
-      // add new values with their categories
-      for (const id of valueMap.keys()) {
-        const categories = belongToCategories.get(id);
-        if (categories) {
-          const value = valueMap.get(id) as IdValue;
-          this.replaceCategories(value, categories);
-        }
+    }
+    // remove no longer existing values
+    for (const id of this.idMap.keys()) {
+      if (!newIds.has(id)) {
+        this.delete(id);
       }
-      // remove old values
-      for (const id of this.idMap.keys()) {
-        if (!belongToCategories.has(id)) {
-          this.delete(id);
-        }
-      }
-    } else {
-      this.clear();
     }
     return this;
+  }
+
+  /**
+   * Export the contents of the _CategorizedIdSet_ in a format that the constructor and replace
+   * method understand.
+   */
+  *export(): IterableIterator<[IdValue, Iterable<Category>]> {
+    for (const [id, value] of this.idMap) {
+      const categories = this.idInCategorySet.get(id) as Iterable<Category>;
+      yield [value, categories];
+    }
   }
 
   /**
@@ -256,12 +248,23 @@ export class CategorizedIdSet<IdValue extends IdObject<Id>, Id = string, Categor
   }
 
   /**
-   * Return a SubtractionIdSet that subtracts categories from the specified category
+   * Return a DifferenceIdSet that returns a set containing the CategorizedSet minus the
+   * subtracted categories
    */
-  subtraction(category: Category, subtractCategories: OneOrMore<Category>) {
-    const subtractSets = this.getInternalIdSets(oneOrMoreToArray(subtractCategories));
-    return new SubtractionIdSet(this.getInternalIdSet(category), subtractSets);
+  complement(subtractedCategories: OneOrMore<Category>) {
+    const subtractSets = this.getInternalIdSets(oneOrMoreToArray(subtractedCategories));
+    return new DifferenceIdSet(this, subtractSets);
   }
+
+  /**
+   * Return a DifferenceIdSet that subtracts categories from the specified category
+   */
+  difference(category: Category, subtractedCategories: OneOrMore<Category>) {
+    const subtractSets = this.getInternalIdSets(oneOrMoreToArray(subtractedCategories));
+    return new DifferenceIdSet(this.getInternalIdSet(category), subtractSets);
+  }
+
+
 }
 
 /**

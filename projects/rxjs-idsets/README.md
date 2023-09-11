@@ -11,13 +11,14 @@ It is more or less opinionated in that you need to work with values that impleme
   - [Example 1, IdSet](#example-1-idset)
   - [Example 2, UnionIdSet](#example-2-unionidset)
   - [Example 3, IntersectionIdSet](#example-3-intersectionidset)
-  - [Example 4, SubtractionIdSet](#example-4-subtractionidset)
+  - [Example 4, DifferenceIdSet](#example-4-differenceidset)
   - [Example 5, CategorizedIdSet](#example-5-categorizedidset)
 - [Reference](#reference)
+  - [ReadOnlyIdSet](#readonlyidset)
   - [IdSet](#idset)
   - [UnionIdSet](#unionidset)
   - [IntersectionIdSet](#intersectionidset)
-  - [SubtractionIdSet](#subtractionidset)
+  - [DifferenceIdSet](#differenceidset)
   - [CategorizedIdSet](#categorizedidset)
   
 # Introduction
@@ -48,11 +49,9 @@ This library provides the following `IdSet` classes:
 Changes to the above classes can be _observed_ with the following [RxJS](https://rxjs.dev/) Observable properties:
 - **`all$`** returns all _values_ that are currently in the set.
 - **`add$`** returns all _values_ that will be added (both _created_ and _updated_) to the set.
-- **`create$`** returns only the _**new** values_ that will be added and are not already in the set.
-- **`update$`** returns only the _**changed** values_ will be added and are already in the set.
+- **`create$`** returns only the _**new** values_, values with an **id** that **does not already exist** in the set.
+- **`update$`** returns only the _**changed** values_, values with an id that does exist in the set and is not a reference to to the existing value (needs to be `newvalue !== existingvalue`).
 - **`delete$`** returns the _values_ that will be deleted from the set.
-
-(`{id: Id}`, where Id defaults to a `string`). 
 
 This library was created as a more 'pure' Observable version of my [rxjs-supersets](https://github.com/abreits/rxjs-supersets) library.
 
@@ -60,9 +59,13 @@ For the latest changes and the current version see the [Change log](./CHANGELOG.
 
 # Examples
 
-Nothing explains a library better than a few well documented examples, so here they come (hope they are indeed documented enough).
+Nothing explains a library better than a few well documented examples, so here they come (I hope the examples are indeed documented enough).
+
+The included examples are basic examples on how to use the `IdSet` classes, a more elaborate 'real life' example is planned for the future.
 
 ## Example 1, IdSet
+
+The `IdSet` is the basic class this library is built upon, it provides all normal Typescript Set operations
 
 ``` typescript
 // create a new set containing 3 values, values implement IdObject interface
@@ -125,30 +128,68 @@ set1.add(value3);
 // intersectionSet: [value2, value3] because value3 is now in all intersection sources
 ```
 
-## Example 4, SubtractionIdSet
+## Example 4, DifferenceIdSet
 
 ``` typescript
 const sourceSet = new IdSet([value1, value2, value3])
 const subtractSet1 = new IdSet([value1]);
 const subtractSet2 = new IdSet([value2]);
-const subtractionResultSet = new SubtractionIdSet([set1, set2]);
-// subtractionResultSet: [value3]
+const differenceResultSet = new DifferenceIdSet([set1, set2]);
+// differenceResultSet: [value3]
 
 // subscribe to create$
-subtractionResultSet.create$.subscribe(value => console.log('created new', value));
+differenceResultSet.create$.subscribe(value => console.log('created new', value));
 
-subtractionResultSet.add(value4);
-// subtractionResultSet: [value3, value4] because value4 is not present in one of the subtractSets
+differenceResultSet.add(value4);
+// differenceResultSet: [value3, value4] because value4 is not present in one of the subtractSets
 subtractSet1.add(value4);
-// subtractionResultSet: [value3] because value4 is now present in one of the subtractSets
+// differenceResultSet: [value3] because value4 is now present in one of the subtractSets
 subtractSet1.delete(value1);
-// subtractionResultSet: [value1, value3] because value1 is no longer present in one of the subtractSets
+// differenceResultSet: [value1, value3] because value1 is no longer present in one of the subtractSets
 ```
 
 ## Example 5, CategorizedIdSet
 
 ``` typescript
-// TODO!
+const categorizedSet = new CategorizedIdSet();
+
+// add value1 to the set in category1
+categorizedSet.add(value1, 'category1');
+
+// get a new empty category set
+const category2Set = categorizedSet.getIdSet('category2');
+// if the category already contains values get the existing category set
+const category1Set = categorizedSet.getIdSet('category1');
+
+// you can add multiple values to multiple categories at once if you want to
+categorizedSet.add([value2, value3], ['category1', 'category2', 'category3']);
+// categorizedSet now contains [value1, value2 value3]
+// category1Set now contains [value1, value2, value3]
+// category2Set now contains [value2, value3]
+// there is also a 'category3' in the categorizedSet containing [value2, value3]
+
+categorizedSet.replaceCategories(value3, ['category2', 'category3']);
+// categorizedSet still contains [value1, value2 value3]
+// category1Set now contains [value1, value2]
+// category2Set now contains [value2, value3]
+// there is also a 'category3' in the categorizedSet containing [value2, value3]
+
+categorizedSet.delete(value2.id, 'category2');
+// category2Set now contains [value3]
+
+categorizedSet.delete(value1.id);
+// categorizedSet now contains [value2 value3]
+// category2Set now contains []
+
+categorizedSet.categoriesBelongedTo(value3.id);
+// should return a Set containing ['category1', 'category3']
+
+// there are methods to create union, intersection and subtraction sets from categories
+const unionIdSet = categorizedSet.union(['category1', 'category2', 'category3']);
+const intersectionIdSet = categorizedSet.intersection(['category1', 'category2', 'category3']);
+const differenceIdSet = categorizedSet.difference('category1', ['category2', 'category3']);
+const complementIdSet = categorizedSet.complement(['category2', 'category3']);
+// complement returns a differenceIdSet of the specified categories with the categorizedSet
 ```
 
 
@@ -156,21 +197,179 @@ subtractSet1.delete(value1);
 
 The all important 'if all else fails, read the manual' command reference.
 
-## IdSet
+I have tried to make the `IdSets` as self explaining as possible from within an IDE
+(VS Code in my case), but this reference might help.
 
-TODO!
+This reference is a 'minimal' reference as in only Class specific properties and methods and overridden methods with changed or extended functionality will be described here, unchanged parent methods and properties will be described in the parent class only. 
+
+
+## ReadOnlyIdSet
+
+The `ReadOnlyIdSet` is not very useful in itself, but it contains all the basic functionality needed for the `IdSet` and other subclasses to function.
+
+It is an IdSet that, as the name implies is readonly. This means that it provides no way to change its contents by itself.
+
+### Class specific properties and methods
+
+The methods and properties that define the basic functionality of the `IdSet` classes are described below.
+
+#### `constructor(values?: Iterable<IdValue>)`
+Creates a new Set based the values given. If no values are supplied an empty Set is created.
+
+#### `all$: Observable<IdValue>` 
+Observable that returns all values currently in the set one by one and then completes.
+
+#### `create$: Observable<IdValue>`
+If a new value is added to the Set, this Observable returns that value
+(placeholder to be used by subclasses). 
+
+#### `update$: Observable<IdValue>`
+If an existing value is updated in the set, this Observable returns that value
+(placeholder to be used by subclasses). 
+
+#### `delete$: Observable<IdValue>`
+If a value is deleted from the set, this Observable returns that value
+(placeholder to be used by subclasses).
+
+#### `add$: Observable<IdValue>`
+If a value is added to the set (created or updated), this Observable returns that value
+(placeholder to be used by subclasses). 
+
+#### `allAdd$: Observable<IdValue>`
+Observable that returns all values currently in the set one by one and hands it over to the `add$`.
+
+Useful observable when you need to monitor all additions from the beginnig of the Set, 
+but you start when the Set is already populated with values.
+
+#### `complete()`
+Completes all Observables in the set, modifications to the set will no longer be propageted through these observables. Only the `all$` Observable will still function.
+
+### Basic `Set` properties and methods
+The methods and properties thatare identical to the default `Set` classes are given below. No description apart from the type annotation is given.
+
+#### `size: number`
+
+#### `values(): IterableIterator<IdValue>` 
+
+#### `forEach(fn: (...) => void)`
+
+#### `get(key: Id): IdValue`
+
+#### `has(key: Id): boolean`
+
+#### `keys(): IterableIterator<Id>`
+
+#### `entries(): IterableIterator<[Id, IdValue]>`
+
+#### `[Symbol.iterator](): IterableIterator<IdValue>`
+
+
+## IdSet
+This is the basic 'bread and butter' class of the `IdSet` classes (that is why it is called `IdSet`).
+It is based on the [`ReadOnlyIdSet`](#readonlyidset), but adds methods to add and deletevalues to and from the set.
+
+See the [example1.ts](./examples/example1.ts) file for a complete example of the `IdSet`.
+
+### Additional properties and methods
+The `IdSet` class extends the `ReadonlyIdClass` with the methods described below.
+
+#### `add(values: OneOrMore<IdValue>)`
+Add one or more values to the set. 
+
+If it is a new value (value with specified `id` does not exist in the Set) the value is published to the `create$`, `add$` and `allAdd$` Observables.
+
+If it is an updated value (value with the specified `id` exists and does not refer to the same Object: `newValue !== existingValue`) the value is published to the `update$`, `add$` and `allAdd$` Observables.
+
+#### `delete(ids: OneOrMore<Id>): boolean`
+Deletes one or more values from the set.
+
+If a value with the specified `id` exists, it is deleted from the set and the deleted value is published
+to the `delete$` Observable.
+
+#### `replace(values: OneOrMore<IdValue>)`
+Replaces the existing set with the defined values.
+
+If a new value does not exist, it is added and the value is published to the `create$`, `add$` and `allAdd$` Observables.
+
+If a value already exists, but is updated, it is replaced and the value is published to the `update$`, `add$` and `allAdd$` Observables.
+
+If an original value no longer exists, it is deleted and the deleted value is published
+to the `delete$` Observable.
+
+#### `clear()`
+Removes all existing values from the set.
+
+Alle existing values are deleted on by one and each deleted value is published
+to the `delete$` Observable.
+
 
 ## UnionIdSet
+The `UnionIdSet` is a live union of the source IdSets defined in the constructor.
+It is a subclass of the [`ReadonlyIdSet`](#readonlyidset).
 
-TODO!
+The `UnionIdSet` is a 'live' representation of that union. I.e. if the content of a source IdSet changes it automatically updates the content of the `UnionIdSet`, see the example below:
+``` typescript
+source1 = new IdSet([value1, value2]);
+source2 = new IdSet([value2, value3]);
+unionIdSet = new UnionIdSet([source1, source2]); //contains [value1, value2, value3]
+source2.add(value4);
+// unionIdSet now contains [value1, value2, value3, value4]
+```
+
+### Additional properties and methods
+
+#### `constructor(sourceSets: Iterable<IdSet>)`
+Define the source `IdSets` the `UnionIdSet` operates upon at construction.
+
+#### `readonly sourceSets: Iterable<IdSet>`
+The sourceSets the `UnionIdSet` operates upon
+
 
 ## IntersectionIdSet
+The `IntersectionIdSet` is a live intersection of the source IdSets defined in the constructor.
+It is a subclass of the [`ReadonlyIdSet`](#readonlyidset).
 
-TODO!
+The `IntersectionIdSet` is a 'live' representation of that intersection. I.e. if the content of a source IdSet changes it automatically updates the content of the `IntersectionIdSet`, see the example below:
+``` typescript
+source1 = new IdSet([value1, value2]);
+source2 = new IdSet([value2, value3]);
+intersectionIdSet = new IntersectionIdSet([source1, source2]); //contains [value2]
+source2.add(value1);
+// intersectionIdSet now contains [value1, value2]
+```
 
-## SubtractionIdSet
+### Additional properties and methods
+#### `constructor(sourceSets: Iterable<IdSet>)`
+Define the source `IdSets` the `IntersectionIdSet` operates upon at construction.
 
-TODO!
+#### `readonly sourceSets: Iterable<IdSet>`
+The sourceSets the `IntersectionIdSet` operates upon
+
+
+## DifferenceIdSet
+The `DifferenceIdSet` is the live difference between the source IdSet and other sets defined in the constructor.
+It is a subclass of the [`ReadonlyIdSet`](#readonlyidset).
+
+The `DifferenceIdSet` is a 'live' representation of that difference. I.e. if the content of a source or other IdSet changes it automatically updates the content of the `DifferenceIdSet`, see the example below:
+``` typescript
+source = new IdSet([value1, value2, value3, value4]);
+other1 = new IdSet([value3]);
+other2 = new IdSet([value3, value4]);
+intersectionIdSet = new DifferenceIdSet(source, [other1, other2]); //contains [value1, value2]
+other1.add(value1);
+// DifferenceIdSet now contains [value2]
+```
+
+### Additional properties and methods
+#### `constructor(sourceSet: IdSet, otherSets: Iterable<IdSet>)`
+Define the source and other `IdSets` the `DifferenceIdSet` operates upon at construction.
+
+#### `readonly sourceSet: IdSet`
+The sourceSet the `DifferenceIdSet` operates upon
+
+#### `readonly otherSets: Iterable<IdSet>`
+The otherSets the `DifferenceIdSet` operates upon
+
 
 ## CategorizedIdSet
 

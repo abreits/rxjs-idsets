@@ -5,10 +5,10 @@ import { IdObject } from '../types';
 import { OneOrMore, oneOrMoreForEach, oneOrMoreToIterable } from '../utility/one-or-more';
 
 /**
- * IdSet that contains all values of the intersection of the IdSets passed in the constructor
+ * IdSet that contains all values of the difference between the source set and the other IdSets passed in the constructor
  */
-export class SubtractionIdSet<IdValue extends IdObject<Id>, Id = string> extends ReadonlyIdSet<IdValue, Id> {
-  public readonly subtractionSets: Iterable<ReadonlyIdSet<IdValue, Id>>;
+export class DifferenceIdSet<IdValue extends IdObject<Id>, Id = string> extends ReadonlyIdSet<IdValue, Id> {
+  public readonly otherSets: Iterable<ReadonlyIdSet<IdValue, Id>>;
 
   private addSubscriber: Subscription;
   private deleteSubscriber: Subscription;
@@ -19,11 +19,11 @@ export class SubtractionIdSet<IdValue extends IdObject<Id>, Id = string> extends
 
   constructor(
     public readonly sourceSet: ReadonlyIdSet<IdValue, Id>,
-    subtractionSets: OneOrMore<ReadonlyIdSet<IdValue, Id>>
+    otherSets: OneOrMore<ReadonlyIdSet<IdValue, Id>>
   ) {
     super();
 
-    this.subtractionSets = oneOrMoreToIterable(subtractionSets);
+    this.otherSets = oneOrMoreToIterable(otherSets);
     this.addSubscriber = this.sourceSet.allAdd$.subscribe(value => this.processAdd(value));
     this.deleteSubscriber = this.sourceSet.delete$.subscribe({
       next: value => this.processDelete(value),
@@ -37,13 +37,13 @@ export class SubtractionIdSet<IdValue extends IdObject<Id>, Id = string> extends
 
     const additions: Observable<IdValue>[] = [];
     const deletions: Observable<IdValue>[] = [];
-    oneOrMoreForEach(subtractionSets, subtractionSet => {
+    oneOrMoreForEach(otherSets, subtractionSet => {
       additions.push(subtractionSet.allAdd$);
       deletions.push(subtractionSet.delete$);
     });
-    this.subtractionAddSubscriber = merge(...additions).subscribe(value => this.processSubtractionAdd(value));
+    this.subtractionAddSubscriber = merge(...additions).subscribe(value => this.processOtherAdd(value));
     this.subtractionDeleteSubscriber = merge(...deletions).subscribe({
-      next: value => this.processSubtractionDelete(value),
+      next: value => this.processOtherDelete(value),
       complete: () => {
         this.subtractionsCompleted = true;
         if (this.sourceCompleted) {
@@ -73,7 +73,7 @@ export class SubtractionIdSet<IdValue extends IdObject<Id>, Id = string> extends
     } else {
       // possibly adding new value
       let notSubtracted = true;
-      for (const subtractionSet of this.subtractionSets) {
+      for (const subtractionSet of this.otherSets) {
         if (subtractionSet.has(id)) {
           notSubtracted = false;
           break;
@@ -95,7 +95,7 @@ export class SubtractionIdSet<IdValue extends IdObject<Id>, Id = string> extends
     }
   }
 
-  protected processSubtractionAdd(value: IdValue) {
+  protected processOtherAdd(value: IdValue) {
     const id = value.id;
     const currentValue = this.idMap.get(id);
     if (currentValue) {
@@ -104,13 +104,13 @@ export class SubtractionIdSet<IdValue extends IdObject<Id>, Id = string> extends
     }
   }
 
-  protected processSubtractionDelete(value: IdValue) {
+  protected processOtherDelete(value: IdValue) {
     const id = value.id;
     const sourceValue = this.sourceSet.get(id);
     if (sourceValue) {
       // add the no longer subtracted value?
       let notSubtracted = true;
-      for (const subtractionSet of this.subtractionSets) {
+      for (const subtractionSet of this.otherSets) {
         if (subtractionSet.has(id)) {
           notSubtracted = false;
           break;

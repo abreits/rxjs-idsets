@@ -1,6 +1,8 @@
 import { CategorizedIdSet } from './categorized-id-set';
-import { CategoryIds, IdObject } from '../types';
-import { IntersectionIdSet, SubtractionIdSet, UnionIdSet } from '../public-api';
+import { IdObject } from '../types';
+import { IntersectionIdSet, DifferenceIdSet, UnionIdSet } from '../public-api';
+
+type IdValue = { id: string, value: string };
 
 const value1 = { id: '1', value: 'value1' };
 const value2 = { id: '2', value: 'value2' };
@@ -30,11 +32,11 @@ describe('CategorizedIdSet', () => {
     });
 
     it('should create a populated set according to categoriesBelongedTo', () => {
-      const categoriesBelongedTo: CategoryIds = {
-        category: 'category1',
-        ids: [value1.id, value2.id]
-      };
-      const categorizedIdSet = new CategorizedIdSet([value1, value2], categoriesBelongedTo);
+      const newValues: [IdValue, Iterable<string>][] = [
+        [value1, ['category1']],
+        [value2, ['category1']]
+      ];
+      const categorizedIdSet = new CategorizedIdSet(newValues);
       expect(categorizedIdSet.size).toBe(2);
     });
   });
@@ -188,18 +190,47 @@ describe('CategorizedIdSet', () => {
       testObject.add([value4], 'category2');
       expect(testObject.size).toBe(4);
 
-      const categoriesBelongedTo: CategoryIds[] = [{
-        category: 'category3',
-        ids: [value3.id, value4.id]
-      }, {
-        category: 'category1',
-        ids: [value3.id]
-      }];
-      testObject.replace([value1, value2, value3, value4], categoriesBelongedTo);
+      const categoriesBelongedTo: [IdValue, Iterable<string>][] = [
+        [value3, ['category1', 'category3']],
+        [value4, ['category3']]
+      ];
+      testObject.replace(categoriesBelongedTo);
       expect(testObject.size).toBe(2);
       expect(testObject.categories.get('category1')?.size).toBe(1);
       expect(testObject.categories.get('category2')?.size).toBe(0);
       expect(testObject.categories.get('category3')?.size).toBe(2);
+    });
+
+    it('should use the same values if cloneValues is false', () => {
+      const categoriesBelongedTo: [IdValue, Iterable<string>][] = [
+        [value1, ['category1']],
+        [value2, ['category1']]
+      ];
+      testObject.replace(categoriesBelongedTo);
+      expect(testObject.size).toBe(2);
+      expect(testObject.get(value1.id)).toBe(value1);
+      expect(testObject.get(value2.id)).toBe(value2);
+    });
+
+    it('should clone values if cloneValues is true', () => {
+      const categoriesBelongedTo: [IdValue, Iterable<string>][] = [
+        [value1, ['category1']],
+        [value2, ['category1']]
+      ];
+      testObject.replace(categoriesBelongedTo, true);
+      expect(testObject.size).toBe(2);
+      expect(testObject.get(value1.id)).not.toBe(value1);
+      expect(testObject.get(value2.id)).not.toBe(value2);
+    });
+  });
+
+  describe('export', () => {
+    it('should create the export Iterable that can be used to duplicate a CategorizedIdSet', () => {
+      testObject.add([value1, value2, value3], 'category1');
+      testObject.add([value3, value4], 'category2');
+
+      const duplicateObject = new CategorizedIdSet(testObject.export());
+      expect(duplicateObject).toEqual(testObject);
     });
   });
 
@@ -390,14 +421,26 @@ describe('CategorizedIdSet', () => {
     });
   });
 
-  describe('subtraction', () => {
-    it('should return a SubtractionIdSet for the specified categories', () => {
+  describe('difference', () => {
+    it('should return a DifferenceIdSet for the specified categories', () => {
       testObject.add([value1, value2, value3, value4], 'category1');
       testObject.add([value3], 'category2');
       testObject.add([value4], 'category3');
 
-      const intersection = testObject.subtraction('category1', ['category2', 'category3']);
-      expect(intersection instanceof SubtractionIdSet).toBeTrue();
+      const intersection = testObject.difference('category1', ['category2', 'category3']);
+      expect(intersection instanceof DifferenceIdSet).toBeTrue();
+      expect(intersection.size).toBe(2);
+    });
+  });
+
+  describe('complement', () => {
+    it('should return a DifferenceIdSet for the CategorizedIdSet and the specified categories', () => {
+      testObject.add([value1, value2, value3, value4], 'category1');
+      testObject.add([value3], 'category2');
+      testObject.add([value4], 'category3');
+
+      const intersection = testObject.complement(['category2', 'category3']);
+      expect(intersection instanceof DifferenceIdSet).toBeTrue();
       expect(intersection.size).toBe(2);
     });
   });

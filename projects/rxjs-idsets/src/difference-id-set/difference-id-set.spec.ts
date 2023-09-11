@@ -1,4 +1,4 @@
-import { IdSet, SubtractionIdSet } from '../public-api';
+import { IdSet, DifferenceIdSet } from '../public-api';
 
 const value1 = { id: '1', value: 'value1' };
 const value2 = { id: '2', value: 'value2' };
@@ -15,18 +15,18 @@ type TestValue = { id: string, value: string };
 let set1: IdSet<TestValue>;
 let set2: IdSet<TestValue>;
 let set3: IdSet<TestValue>;
-let testObject: SubtractionIdSet<TestValue>;
+let testObject: DifferenceIdSet<TestValue>;
 
 let created: TestValue[];
 let updated: TestValue[];
 let deleted: TestValue[];
 
-describe('SubtractionIdSet', () => {
+describe('DifferenceIdSet', () => {
   beforeEach(() => {
     set1 = new IdSet(idSet123);
     set2 = new IdSet(idSet25);
     set3 = new IdSet(idSet3);
-    testObject = new SubtractionIdSet(set1, [set2, set3]);
+    testObject = new DifferenceIdSet(set1, [set2, set3]);
 
     created = [];
     updated = [];
@@ -41,13 +41,13 @@ describe('SubtractionIdSet', () => {
   });
 
   describe('constructor', () => {
-    it('should create a SubtractionIdSet from the given IdSets', () => {
+    it('should create a DifferenceIdSet from the given IdSets', () => {
       expect(testObject.size).toBe(1);
       expect(testObject.get(value1.id)).toBe(value1);
     });
 
     describe('complete', () => {
-      it('should complete after all inputs complete, source completed first', () => {
+      it('should complete after all inputs complete, source set completed first', () => {
         const subscription = testObject.create$.subscribe();
         expect(subscription.closed).toBeFalse();
         set1.complete();
@@ -58,7 +58,7 @@ describe('SubtractionIdSet', () => {
         expect(subscription.closed).toBeTrue();
       });
 
-      it('should complete after all inputs complete, subtractors completed first', () => {
+      it('should complete after all inputs complete, other sets completed first', () => {
         const subscription = testObject.create$.subscribe();
         expect(subscription.closed).toBeFalse();
         set2.complete();
@@ -71,14 +71,14 @@ describe('SubtractionIdSet', () => {
     });
 
     describe('propagate mutations in source IdSets', () => {
-      it('should add a value to the set if it is added to the sourceset and not present in the subtractsets', () => {
+      it('should add a value to the set if it is added to the sourceset and not present in the other sets', () => {
         set1.add(value4);
 
         expect(testObject.size).toBe(2);
         expect(created).toEqual([value4]);
       });
 
-      it('should not add a value to the set if it is added to the sourceset and present in one of the subtractsets', () => {
+      it('should not add a value to the set if it is added to the sourceset and present in one of the other sets', () => {
         set1.add(value5);
 
         expect(testObject.size).toBe(1);
@@ -86,7 +86,7 @@ describe('SubtractionIdSet', () => {
         expect(created).toEqual([]);
       });
 
-      it('should remove a value from the set if it is added to one of the subtractsets', () => {
+      it('should remove a value from the set if it is added to one of the other sets', () => {
         set2.add(value1);
 
         expect(testObject.size).toBe(0);
@@ -100,14 +100,14 @@ describe('SubtractionIdSet', () => {
         expect(deleted).toEqual([value1]);
       });
 
-      it('should add a value if it is present in the sourceset and removed from all subtractsets', () => {
+      it('should add a value if it is present in the sourceset and removed from all other sets', () => {
         set2.delete(value2.id);
 
         expect(testObject.size).toBe(2);
         expect(created).toEqual([value2]);
       });
 
-      it('should not add a value if it is present in the sourceset, removed a subtractset, but still present in another subset', () => {
+      it('should not add a value if it is present in the sourceset, removed a other set, but still present in another subset', () => {
         set3.add(value2);
         set2.delete(value2.id);
 

@@ -88,7 +88,7 @@ export class ReadonlyIdSet<IdValue extends IdObject<Id>, Id = string> {
     return this.idMap.values();
   }
 
-  forEach(fn: (value: IdValue, key?: Id, map?: Map<Id, IdValue>) => void, thisArg?: any) {
+  forEach(fn: (value: IdValue, key?: Id, map?: Map<Id, IdValue>) => void, thisArg?: this) {
     this.idMap.forEach(fn, thisArg);
   }
 
