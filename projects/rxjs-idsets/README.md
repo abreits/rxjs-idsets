@@ -214,35 +214,34 @@ It is an IdSet that, as the name implies is readonly. This means that it provide
 The methods and properties that define the basic functionality of the `IdSet` classes are described below.
 
 #### `constructor(values?: Iterable<IdValue>)`
-Creates a new Set based the values given. If no values are supplied an empty Set is created.
+- Creates a new Set based the values given. If no values are supplied an empty Set is created.
 
 #### `all$: Observable<IdValue>` 
-Observable that returns all values currently in the set one by one and then completes.
+- Observable that returns all values currently in the set one by one and then completes.
 
 #### `create$: Observable<IdValue>`
-If a new value is added to the Set, this Observable returns that value
+- If a new value is added to the Set, this Observable returns that value
 (placeholder to be used by subclasses). 
 
 #### `update$: Observable<IdValue>`
-If an existing value is updated in the set, this Observable returns that value
+- If an existing value is updated in the set, this Observable returns that value
 (placeholder to be used by subclasses). 
 
 #### `delete$: Observable<IdValue>`
-If a value is deleted from the set, this Observable returns that value
+- If a value is deleted from the set, this Observable returns that value
 (placeholder to be used by subclasses).
 
 #### `add$: Observable<IdValue>`
-If a value is added to the set (created or updated), this Observable returns that value
+- If a value is added to the set (created or updated), this Observable returns that value
 (placeholder to be used by subclasses). 
 
 #### `allAdd$: Observable<IdValue>`
-Observable that returns all values currently in the set one by one and hands it over to the `add$`.
-
-Useful observable when you need to monitor all additions from the beginnig of the Set, 
+- Observable that returns all values currently in the set one by one and hands it over to the `add$`.
+- Useful observable when you need to monitor all additions from the beginnig of the Set, 
 but you start when the Set is already populated with values.
 
 #### `complete()`
-Completes all Observables in the set, modifications to the set will no longer be propageted through these observables. Only the `all$` Observable will still function.
+- Completes all Observables in the set, modifications to the set will no longer be propageted through these observables. Only the `all$` Observable will still function.
 
 ### Basic `Set` properties and methods
 The methods and properties thatare identical to the default `Set` classes are given below. No description apart from the type annotation is given.
@@ -266,7 +265,7 @@ The methods and properties thatare identical to the default `Set` classes are gi
 
 ## IdSet
 This is the basic 'bread and butter' class of the `IdSet` classes (that is why it is called `IdSet`).
-It is based on the [`ReadOnlyIdSet`](#readonlyidset), but adds methods to add and deletevalues to and from the set.
+It extends the [`ReadonlyIdSet`](#readonlyidset).
 
 See the [example1.ts](./examples/example1.ts) file for a complete example of the `IdSet`.
 
@@ -274,38 +273,31 @@ See the [example1.ts](./examples/example1.ts) file for a complete example of the
 The `IdSet` class extends the `ReadonlyIdClass` with the methods described below.
 
 #### `add(values: OneOrMore<IdValue>)`
-Add one or more values to the set. 
-
-If it is a new value (value with specified `id` does not exist in the Set) the value is published to the `create$`, `add$` and `allAdd$` Observables.
-
-If it is an updated value (value with the specified `id` exists and does not refer to the same Object: `newValue !== existingValue`) the value is published to the `update$`, `add$` and `allAdd$` Observables.
+- Add one or more values to the set. 
+- If it is a new value (value with specified `id` does not exist in the Set) the value is published to the `create$`, `add$` and `allAdd$` Observables.
+- If it is an updated value (value with the specified `id` exists and does not refer to the same Object: `newValue !== existingValue`) the value is published to the `update$`, `add$` and `allAdd$` Observables.
 
 #### `delete(ids: OneOrMore<Id>): boolean`
-Deletes one or more values from the set.
-
-If a value with the specified `id` exists, it is deleted from the set and the deleted value is published
+- Deletes one or more values from the set.
+- If a value with the specified `id` exists, it is deleted from the set and the deleted value is published
 to the `delete$` Observable.
 
 #### `replace(values: OneOrMore<IdValue>)`
-Replaces the existing set with the defined values.
-
-If a new value does not exist, it is added and the value is published to the `create$`, `add$` and `allAdd$` Observables.
-
-If a value already exists, but is updated, it is replaced and the value is published to the `update$`, `add$` and `allAdd$` Observables.
-
-If an original value no longer exists, it is deleted and the deleted value is published
+- Replaces the existing set with the defined values.
+- If a new value does not exist, it is added and the value is published to the `create$`, `add$` and `allAdd$` Observables.
+- If a value already exists, but is updated, it is replaced and the value is published to the `update$`, `add$` and `allAdd$` Observables.
+- If an original value no longer exists, it is deleted and the deleted value is published
 to the `delete$` Observable.
 
 #### `clear()`
-Removes all existing values from the set.
-
-Alle existing values are deleted on by one and each deleted value is published
+- Removes all existing values from the set.
+- Alle existing values are deleted on by one and each deleted value is published
 to the `delete$` Observable.
 
 
 ## UnionIdSet
 The `UnionIdSet` is a live union of the source IdSets defined in the constructor.
-It is a subclass of the [`ReadonlyIdSet`](#readonlyidset).
+It extends the [`ReadonlyIdSet`](#readonlyidset).
 
 The `UnionIdSet` is a 'live' representation of that union. I.e. if the content of a source IdSet changes it automatically updates the content of the `UnionIdSet`, see the example below:
 ``` typescript
@@ -318,16 +310,16 @@ source2.add(value4);
 
 ### Additional properties and methods
 
-#### `constructor(sourceSets: Iterable<IdSet>)`
-Define the source `IdSets` the `UnionIdSet` operates upon at construction.
+#### `constructor(sourceSets: Iterable<ReadonlyIdSet>)`
+- Define the source `IdSets` the `UnionIdSet` operates upon at construction.
 
-#### `readonly sourceSets: Iterable<IdSet>`
-The sourceSets the `UnionIdSet` operates upon
+#### `readonly sourceSets: Iterable<ReadonlyIdSet>`
+- The sourceSets the `UnionIdSet` operates upon
 
 
 ## IntersectionIdSet
 The `IntersectionIdSet` is a live intersection of the source IdSets defined in the constructor.
-It is a subclass of the [`ReadonlyIdSet`](#readonlyidset).
+It extends the [`ReadonlyIdSet`](#readonlyidset).
 
 The `IntersectionIdSet` is a 'live' representation of that intersection. I.e. if the content of a source IdSet changes it automatically updates the content of the `IntersectionIdSet`, see the example below:
 ``` typescript
@@ -339,16 +331,16 @@ source2.add(value1);
 ```
 
 ### Additional properties and methods
-#### `constructor(sourceSets: Iterable<IdSet>)`
-Define the source `IdSets` the `IntersectionIdSet` operates upon at construction.
+#### `constructor(sourceSets: Iterable<ReadonlyIdSet>)`
+- Define the source `IdSets` the `IntersectionIdSet` operates upon at construction.
 
-#### `readonly sourceSets: Iterable<IdSet>`
-The sourceSets the `IntersectionIdSet` operates upon
+#### `readonly sourceSets: Iterable<ReadonlyIdSet>`
+- The sourceSets the `IntersectionIdSet` operates upon
 
 
 ## DifferenceIdSet
 The `DifferenceIdSet` is the live difference between the source IdSet and other sets defined in the constructor.
-It is a subclass of the [`ReadonlyIdSet`](#readonlyidset).
+It extends the [`ReadonlyIdSet`](#readonlyidset).
 
 The `DifferenceIdSet` is a 'live' representation of that difference. I.e. if the content of a source or other IdSet changes it automatically updates the content of the `DifferenceIdSet`, see the example below:
 ``` typescript
@@ -361,16 +353,76 @@ other1.add(value1);
 ```
 
 ### Additional properties and methods
-#### `constructor(sourceSet: IdSet, otherSets: Iterable<IdSet>)`
-Define the source and other `IdSets` the `DifferenceIdSet` operates upon at construction.
+#### `constructor(sourceSet: IdSet, otherSets: Iterable<ReadonlyIdSet>)`
+- Define the source and other `IdSets` the `DifferenceIdSet` operates upon at construction.
 
-#### `readonly sourceSet: IdSet`
-The sourceSet the `DifferenceIdSet` operates upon
+#### `readonly sourceSet: ReadonlyIdSet`
+- The sourceSet the `DifferenceIdSet` operates upon
 
-#### `readonly otherSets: Iterable<IdSet>`
-The otherSets the `DifferenceIdSet` operates upon
+#### `readonly othersets: Iterable<ReadonlyIdSet>`
+- The otherSets the `DifferenceIdSet` operates upon
 
 
 ## CategorizedIdSet
+The `CategorizedIdSet` is an IdSet where the values are also member of one or more categories.
+It extends the [`IdSet`](#idset).
 
-TODO!
+Each category in a `CategorizedIdSet` is also an `IdSet` of its own and can be treated as such. It can`add`, `delete`, ` replace` values etc. and subscribe to changes with the `create$`, `delete$` etc. Observables.
+
+When a value in a `CategorizedIdSet` no longer belongs to a category it is also deleted from the `CategorizedIdSet` itself.
+
+### Additional and overridden properties and methods
+
+#### `constructor(values?: OneOrMore<[IdValue, Iterable<Category>]>, cloneValues = false)`
+- You can use the `export()` method to create values for the constructor to duplicate an
+existing set.
+
+#### `categories: ReadonlyMap<Category, IdSet>`
+- A map containing the active categories and their values.
+- An active category is a category with values and/or observed subscriptions
+
+#### `add(values: OneOrMore<IdValue>, categories?: OneOrMore<Category>)`
+- Add value or values (also) to the specified categories.
+
+#### `delete(ids: OneOrMore<Id>, categories?: OneOrMore<Category>)`
+- Delete value with this id from specified categories.
+- If the value does not exist in any category it will be removed from the CategorizedIdSet
+
+#### `replace(values: OneOrMore<[IdValue, Iterable<Category>]>, cloneValues = false)`
+- You can use the `export()` method to create values for the replace method to duplicate
+an existing set.
+
+#### `export(): IterableIterator<[IdValue, Iterable<Category>]>`
+- Export the contents of the _CategorizedIdSet_ in a format that the constructor and replace
+method understand.
+  
+#### `replaceCategories(values: OneOrMore<IdValue>, categories?: OneOrMore<Category>)`
+- Replace the categories the values belong to with the specified categories.
+
+#### `complete()`
+- Completes all subscriptions of this CategorizedIdSet and all category IdSets
+
+#### `categoriesBelongedTo(id: Id): ReadonlySet<Category> | undefined`
+- Return a Set containing the categories the value with this id is member of
+
+#### `clear(categories?: OneOrMore<Category>)`
+Clear specified categories, if no category is specified all categories are cleared.
+- If a value no longer exists in any category it will also be removed from the CategorizedIdSet.
+
+#### `getIdSet(category: Category): IdSet`
+- Uses the existing IdSet for the category if the category exists.
+- Creates a new empty IdSet for the category if the category does not exist.
+- Returns the IdSet containing values belonging to this category.
+
+#### `union(categories: Iterable<Category>)`
+- Return a UnionIdSet that is the union of the specified categories
+
+#### `intersection(categories: Iterable<Category>)`
+- Return an IntersectionIdSet that is the intersection of the specified categories
+
+#### `difference(category: Category, subtractedCategories: OneOrMore<Category>)`
+- Return a DifferenceIdSet that subtracts the other categories from the specified category
+
+#### `complement(subtractedCategories: OneOrMore<Category>)`
+- Return a DifferenceIdSet that returns a set containing the CategorizedSet minus the
+subtracted categories

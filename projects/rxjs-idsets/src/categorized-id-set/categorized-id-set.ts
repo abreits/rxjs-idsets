@@ -20,8 +20,7 @@ export class CategorizedIdSet<IdValue extends IdObject<Id>, Id = string, Categor
   }
 
   /**
-   * Only empty new CategorizedIdSets can be created,
-   * Adding values at construction not supported at the moment.
+   * You can use the `export()` method to create values for the constructor to duplicate an existing set.
    */
   constructor(values?: OneOrMore<IdValue | [IdValue, Iterable<Category>]>, cloneValues = false) {
     super();
@@ -50,7 +49,7 @@ export class CategorizedIdSet<IdValue extends IdObject<Id>, Id = string, Categor
   }
 
   /**
-   * Remove value with this id from specified categories.
+   * Delete value with this id from specified categories.
    * If the value does not exist in any category it will be removed from the CategorizedIdSet
    */
   override delete(ids: OneOrMore<Id>, categories?: OneOrMore<Category>) {
@@ -248,6 +247,14 @@ export class CategorizedIdSet<IdValue extends IdObject<Id>, Id = string, Categor
   }
 
   /**
+   * Return a DifferenceIdSet that subtracts the other categories from the specified category
+   */
+  difference(category: Category, subtractedCategories: OneOrMore<Category>) {
+    const subtractSets = this.getInternalIdSets(oneOrMoreToArray(subtractedCategories));
+    return new DifferenceIdSet(this.getInternalIdSet(category), subtractSets);
+  }
+
+  /**
    * Return a DifferenceIdSet that returns a set containing the CategorizedSet minus the
    * subtracted categories
    */
@@ -255,16 +262,6 @@ export class CategorizedIdSet<IdValue extends IdObject<Id>, Id = string, Categor
     const subtractSets = this.getInternalIdSets(oneOrMoreToArray(subtractedCategories));
     return new DifferenceIdSet(this, subtractSets);
   }
-
-  /**
-   * Return a DifferenceIdSet that subtracts categories from the specified category
-   */
-  difference(category: Category, subtractedCategories: OneOrMore<Category>) {
-    const subtractSets = this.getInternalIdSets(oneOrMoreToArray(subtractedCategories));
-    return new DifferenceIdSet(this.getInternalIdSet(category), subtractSets);
-  }
-
-
 }
 
 /**
