@@ -12,14 +12,14 @@ It is more or less opinionated in that you need to work with values that impleme
   - [Example 2, UnionIdSet](#example-2-unionidset)
   - [Example 3, IntersectionIdSet](#example-3-intersectionidset)
   - [Example 4, DifferenceIdSet](#example-4-differenceidset)
-  - [Example 5, CategorizedIdSet](#example-5-categorizedidset)
+  - [Example 5, ContainerIdSet](#example-5-containeridset)
 - [Reference](#reference)
   - [ReadOnlyIdSet](#readonlyidset)
   - [IdSet](#idset)
   - [UnionIdSet](#unionidset)
   - [IntersectionIdSet](#intersectionidset)
   - [DifferenceIdSet](#differenceidset)
-  - [CategorizedIdSet](#categorizedidset)
+  - [ContainerIdSet](#containeridset)
   
 # Introduction
 
@@ -42,9 +42,9 @@ This library provides the following `IdSet` classes:
   mathematical intersection of multiple _source_ `IdSet`'s and keeps it automatically up to date if the contents of the _sources_ change.
 - **`SubtractionIdSet`** is an _observable_ `ReadonlySet` _subclass_ that provides the mathematical
   subtraction of multiple _subtract_ `IdSet`'s from the _source_ `IdSet` and keeps it automatically up to date if the contents of the _source_ or the _subtracts_ change.
-- **`CategorizedIdSet`** places its _values_ in one or more _categories_, it can change the
-  _categories_ a value is member of and if a _value_ is no longer meber of a _category_ it is
-  deleted from the `CategorizedIdSet`. 
+- **`ContainerIdSet`** places its _values_ in one or more _sets_, it can change the
+  _sets_ a value is member of and if a _value_ is no longer meber of a _category_ it is
+  deleted from the `ContainerIdSet`. 
 
 Changes to the above classes can be _observed_ with the following [RxJS](https://rxjs.dev/) Observable properties:
 - **`all$`** returns all _values_ that are currently in the set.
@@ -148,10 +148,10 @@ subtractSet1.delete(value1);
 // differenceResultSet: [value1, value3] because value1 is no longer present in one of the subtractSets
 ```
 
-## Example 5, CategorizedIdSet
+## Example 5, ContainerIdSet
 
 ``` typescript
-const categorizedSet = new CategorizedIdSet();
+const categorizedSet = new ContainerIdSet();
 
 // add value1 to the set in category1
 categorizedSet.add(value1, 'category1');
@@ -161,7 +161,7 @@ const category2Set = categorizedSet.getIdSet('category2');
 // if the category already contains values get the existing category set
 const category1Set = categorizedSet.getIdSet('category1');
 
-// you can add multiple values to multiple categories at once if you want to
+// you can add multiple values to multiple sets at once if you want to
 categorizedSet.add([value2, value3], ['category1', 'category2', 'category3']);
 // categorizedSet now contains [value1, value2 value3]
 // category1Set now contains [value1, value2, value3]
@@ -181,15 +181,15 @@ categorizedSet.delete(value1.id);
 // categorizedSet now contains [value2 value3]
 // category2Set now contains []
 
-categorizedSet.categoriesBelongedTo(value3.id);
+categorizedSet.setsBelongedTo(value3.id);
 // should return a Set containing ['category1', 'category3']
 
-// there are methods to create union, intersection and subtraction sets from categories
+// there are methods to create union, intersection and subtraction sets from sets
 const unionIdSet = categorizedSet.union(['category1', 'category2', 'category3']);
 const intersectionIdSet = categorizedSet.intersection(['category1', 'category2', 'category3']);
 const differenceIdSet = categorizedSet.difference('category1', ['category2', 'category3']);
 const complementIdSet = categorizedSet.complement(['category2', 'category3']);
-// complement returns a differenceIdSet of the specified categories with the categorizedSet
+// complement returns a differenceIdSet of the specified sets with the categorizedSet
 ```
 
 
@@ -363,66 +363,87 @@ other1.add(value1);
 - The otherSets the `DifferenceIdSet` operates upon
 
 
-## CategorizedIdSet
-The `CategorizedIdSet` is an IdSet where the values are also member of one or more categories.
+## ContainerIdSet
+A `ContainerIdSet` consists of one or more `IdSets` identified by a `SetId`.
+The `ContainerIdSet` itself is also an `IdSet` where the values are the union of all the sets it contains.
 It extends the [`IdSet`](#idset).
 
-Each category in a `CategorizedIdSet` is also an `IdSet` of its own and can be treated as such. It can`add`, `delete`, ` replace` values etc. and subscribe to changes with the `create$`, `delete$` etc. Observables.
+It can `add`, `delete`, ` replace` values etc. and subscribe to changes with the `create$`, `delete$` etc.
+Observables.
+A value in a `ContainerIdSet` only exists if the value is alse present in one or more of its contained
+sets.
 
-When a value in a `CategorizedIdSet` no longer belongs to a category it is also deleted from the `CategorizedIdSet` itself.
+A few lines of example code:
+``` typescript
+const container = new ContainerIdSet();
+container.add([value1, value2], 'set1');
+container.add(value3, ['set2', 'set3']);
+
+const set1 = container.getSet('set1');
+set1.delete(value2.id);
+
+set1.allAdd$.subscribe(value => console.log(`Added to set2: ${value}`));
+```
 
 ### Additional and overridden properties and methods
 
-#### `constructor(values?: OneOrMore<[IdValue, Iterable<Category>]>, cloneValues = false)`
-- You can use the `export()` method to create values for the constructor to duplicate an
-existing set.
+#### `constructor(values?: OneOrMore<[IdValue, Iterable<SetId>]>, cloneValues = false)`
+* You can use the `export()` method to create values for the constructor to duplicate an existing 
+`ContainerIdSet`.
+* It will deep clone the values given if `cloneValues` is true.
 
-#### `categories: ReadonlyMap<Category, IdSet>`
-- A map containing the active categories and their values.
-- An active category is a category with values and/or observed subscriptions
+#### `sets: ReadonlyMap<SetId, IdSet>`
+- A Map containing all SetIds with their corresponding IdSet.
 
-#### `add(values: OneOrMore<IdValue>, categories?: OneOrMore<Category>)`
-- Add value or values (also) to the specified categories.
+#### `add(values: OneOrMore<IdValue>, setIds?: OneOrMore<SetId>)`
+- Add one or more values to the specified sets.
 
-#### `delete(ids: OneOrMore<Id>, categories?: OneOrMore<Category>)`
-- Delete value with this id from specified categories.
-- If the value does not exist in any category it will be removed from the CategorizedIdSet
+#### `delete(ids: OneOrMore<Id>, setIds?: OneOrMore<SetId>)`
+* Delete values, specified by their Id from the specified sets.
+* If no sets are specified, they are removed from all sets in the `ContainerIdSet`.
+* If a value no longer belongs to any set in the `ContainerIdSet` 
+it will also be removed from the `ContainerIdSet`.
 
-#### `replace(values: OneOrMore<[IdValue, Iterable<Category>]>, cloneValues = false)`
-- You can use the `export()` method to create values for the replace method to duplicate
-an existing set.
+#### `replace(values: OneOrMore<[IdValue, Iterable<SetId>]>, cloneValues = false)`
+* Replace the contents of the `ContainerIdSet` with the specified _values_.
+* If no values are specified the `ContainerIdSet` and all its existing sets will be cleared.
 
-#### `export(): IterableIterator<[IdValue, Iterable<Category>]>`
-- Export the contents of the _CategorizedIdSet_ in a format that the constructor and replace
+#### `export(): IterableIterator<[IdValue, Iterable<SetId>]>`
+* Export the contents of the `ContainerIdSet` in a format that the `constructor` and `replace`
 method understand.
   
-#### `replaceCategories(values: OneOrMore<IdValue>, categories?: OneOrMore<Category>)`
-- Replace the categories the values belong to with the specified categories.
+#### `addExclusive(values: OneOrMore<IdValue>, sets?: OneOrMore<SetId>)`
+* Add the values only to the specified sets, remove from all other sets.
 
 #### `complete()`
-- Completes all subscriptions of this CategorizedIdSet and all category IdSets
+* Completes all subscriptions of this `ContainerIdSet` and all category IdSets
 
-#### `categoriesBelongedTo(id: Id): ReadonlySet<Category> | undefined`
-- Return a Set containing the categories the value with this id is member of
+#### `setsBelongedTo(id: Id): ReadonlySet<SetId> | undefined`
+* Return a `Set` containing the SetIds for the IdSets the value with this id is member of
+or undefined if it is not member of any contained set.
 
-#### `clear(categories?: OneOrMore<Category>)`
-Clear specified categories, if no category is specified all categories are cleared.
-- If a value no longer exists in any category it will also be removed from the CategorizedIdSet.
+#### `clear(sets?: OneOrMore<SetId>)`
+* Clear specified sets, if no set is specified all contained sets are cleared.
+* If a value no longer exists in any set it will also be removed from the `ContainerIdSet`.
 
-#### `getIdSet(category: Category): IdSet`
-- Uses the existing IdSet for the category if the category exists.
-- Creates a new empty IdSet for the category if the category does not exist.
-- Returns the IdSet containing values belonging to this category.
+#### `detachSet(setIds: OneOrMore<SetId>)`
+* Remove a contained set from the collection of sets.
+* Remove all values that are not present in another contained set from the `ContainerIdSet`
 
-#### `union(categories: Iterable<Category>)`
-- Return a UnionIdSet that is the union of the specified categories
+#### `getSet(setId: SetId): IdSet`
+* Uses the existing IdSet for the SetId if the set exists.
+* Creates a new empty IdSet for the SetId if the set does not exist.
+* Returns the IdSet of the specified SetId.
 
-#### `intersection(categories: Iterable<Category>)`
-- Return an IntersectionIdSet that is the intersection of the specified categories
+#### `union(sets: Iterable<SetId>)`
+- Return a UnionIdSet that is the union of the specified sets
 
-#### `difference(category: Category, subtractedCategories: OneOrMore<Category>)`
-- Return a DifferenceIdSet that subtracts the other categories from the specified category
+#### `intersection(sets: Iterable<SetId>)`
+- Return an IntersectionIdSet that is the intersection of the specified sets
 
-#### `complement(subtractedCategories: OneOrMore<Category>)`
+#### `difference(category: SetId, subtractedCategories: OneOrMore<SetId>)`
+- Return a DifferenceIdSet that subtracts the other sets from the specified category
+
+#### `complement(subtractedCategories: OneOrMore<SetId>)`
 - Return a DifferenceIdSet that returns a set containing the CategorizedSet minus the
-subtracted categories
+subtracted sets
