@@ -17,9 +17,9 @@
     "moduleResolution": "node",
     "importHelpers": true,
     "paths": {
-      "rxjs-collections": [
-        "dist/rxjs-collections/rxjs-collections",
-        "dist/rxjs-collections"
+      "rxjs-idsets": [
+        "dist/rxjs-idsets/rxjs-idsets",
+        "dist/rxjs-idsets"
       ]
     },
     "target": "ES2022",

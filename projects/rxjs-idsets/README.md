@@ -151,45 +151,47 @@ subtractSet1.delete(value1);
 ## Example 5, ContainerIdSet
 
 ``` typescript
-const categorizedSet = new ContainerIdSet();
+const container = new ContainerIdSet();
 
 // add value1 to the set in category1
-categorizedSet.add(value1, 'category1');
+container.add(value1, 'set1');
 
-// get a new empty category set
-const category2Set = categorizedSet.getIdSet('category2');
-// if the category already contains values get the existing category set
-const category1Set = categorizedSet.getIdSet('category1');
+// create a new empty set inside the container
+const set2 = container.getSet('set2');
+// if the set already contains values get the existing set
+const set1 = container.getSet('set1');
 
 // you can add multiple values to multiple sets at once if you want to
-categorizedSet.add([value2, value3], ['category1', 'category2', 'category3']);
-// categorizedSet now contains [value1, value2 value3]
-// category1Set now contains [value1, value2, value3]
-// category2Set now contains [value2, value3]
-// there is also a 'category3' in the categorizedSet containing [value2, value3]
+container.add([value2, value3], ['set1', 'set2', 'set3']);
+// container now contains [value1, value2 value3]
+// set1 now contains [value1, value2, value3]
+// set2 now contains [value2, value3]
+// there is also a 'set3' in the container containing [value2, value3]
 
-categorizedSet.replaceCategories(value3, ['category2', 'category3']);
-// categorizedSet still contains [value1, value2 value3]
-// category1Set now contains [value1, value2]
-// category2Set now contains [value2, value3]
-// there is also a 'category3' in the categorizedSet containing [value2, value3]
+// add or replace value1 omly in the specified sets
+// remove from all other sets if it exists there
+container.addExclusive(value3, ['set2', 'set3']);
+// container still contains [value1, value2 value3]
+// set1 now contains [value1, value2]
+// set2 now contains [value2, value3]
+// there is now also a 'set3' in the container with [value2, value3]
 
-categorizedSet.delete(value2.id, 'category2');
-// category2Set now contains [value3]
+container.delete(value2.id, 'set2');
+// set2 now contains [value3]
 
-categorizedSet.delete(value1.id);
-// categorizedSet now contains [value2 value3]
-// category2Set now contains []
+container.delete(value1.id);
+// container now contains [value2 value3]
+// set2 now contains []
 
-categorizedSet.setsBelongedTo(value3.id);
-// should return a Set containing ['category1', 'category3']
+container.setsBelongedTo(value3.id);
+// should return a Set containing ['set1', 'set3']
 
 // there are methods to create union, intersection and subtraction sets from sets
-const unionIdSet = categorizedSet.union(['category1', 'category2', 'category3']);
-const intersectionIdSet = categorizedSet.intersection(['category1', 'category2', 'category3']);
-const differenceIdSet = categorizedSet.difference('category1', ['category2', 'category3']);
-const complementIdSet = categorizedSet.complement(['category2', 'category3']);
-// complement returns a differenceIdSet of the specified sets with the categorizedSet
+const unionIdSet = container.union(['set1', 'set2', 'set3']);
+const intersectionIdSet = container.intersection(['set1', 'set2', 'set3']);
+const differenceIdSet = container.difference('set1', ['set2', 'set3']);
+const complementIdSet = container.complement(['set2', 'set3']);
+// complement returns a differenceIdSet of the specified sets with the container
 ```
 
 
