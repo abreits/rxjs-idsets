@@ -1,8 +1,19 @@
 # rxjs-idsets <!-- omit in toc -->
 
-If you like to work with [Typescript](), [RxJS](https://rxjs.dev/) and whished you could observe changes to `Set` or `Map` like objects or classes, this library might be worth a look for you.
+If you like to work with [Typescript](), [RxJS](https://rxjs.dev/) and whished you could observe changes to `Set` or `Map` like objects or classes, this library might be for you because that is exactly what it does.
 
-It is more or less opinionated in that you need to work with values that implement an `IdObject` interface (see the [introduction](#introduction) for more details), and only updates existing values with the same `id` if they are different objects (`newIdValue !== existingIdValue`) but otherwise provides all the functionality (and more) from Typescript Sets and RxJS Observables to keep you informed of changes.
+## Set operations
+It also provides 'live' union, intersection and difference set operations. I.e. if a source set of a set operation changes, the result of that set operation is updated automatically.
+
+## Opinionated?
+It requires values that implement an `IdObject` interface (which is simply an object with an `id` property, see the [introduction](#introduction) for more details).
+
+It encourages the use of immutable objects as it only detects updates of existing values if the new value is a different object (the `id` is the same, but for the IdObject `newIdValue !== existingIdValue` is true).
+
+Otherwise it provides all the functionality (and more) from Typescript Sets and adds several RxJS Observables to keep you informed of changes.
+
+## Dependencies
+Apart from Typescripts `tslib` there are no external dependencies.
 
 # Table of contents <!-- omit in toc -->
 
@@ -20,7 +31,8 @@ It is more or less opinionated in that you need to work with values that impleme
   - [IntersectionIdSet](#intersectionidset)
   - [DifferenceIdSet](#differenceidset)
   - [ContainerIdSet](#containeridset)
-  
+
+
 # Introduction
 
 This library provides a number of `IdSet` classes, which are _observable_ extensions of the javascript `Set` _object_.
@@ -43,7 +55,7 @@ This library provides the following `IdSet` classes:
 - **`SubtractionIdSet`** is an _observable_ `ReadonlySet` _subclass_ that provides the mathematical
   subtraction of multiple _subtract_ `IdSet`'s from the _source_ `IdSet` and keeps it automatically up to date if the contents of the _source_ or the _subtracts_ change.
 - **`ContainerIdSet`** places its _values_ in one or more _sets_, it can change the
-  _sets_ a value is member of and if a _value_ is no longer meber of a _category_ it is
+  _sets_ a value is member of and if a _value_ is no longer member of a _category_ it is
   deleted from the `ContainerIdSet`. 
 
 Changes to the above classes can be _observed_ with the following [RxJS](https://rxjs.dev/) Observable properties:
