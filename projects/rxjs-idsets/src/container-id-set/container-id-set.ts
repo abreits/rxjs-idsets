@@ -21,7 +21,7 @@ export class ContainerIdSet<IdValue extends IdObject<Id>, Id = string, SetId = s
    * You can use the `export()` method to create values for the constructor to duplicate an existing 
    * `ContainerIdSet`.
    * 
-   * It will deep clone the values given if `cloneValues` is true.
+   * It will deep clone the values if `cloneValues` is true.
    */
   constructor(values?: OneOrMore<IdValue | [IdValue, Iterable<SetId>]>, cloneValues = false) {
     super();

@@ -1,6 +1,9 @@
 import { IdObject } from '../types';
 import { ReadonlyIdSet } from './readonly-id-set';
 
+const value1 = { id: '1' };
+const value2 = { id: '2' };
+
 const testSet = [{ id: '1' }, { id: '2' }, { id: '3' }];
 const testSetEntries = [['1', { id: '1' }], ['2', { id: '2' }], ['3', { id: '3' }]];
 const testSetKeys = ['1', '2', '3'];
@@ -15,6 +18,17 @@ describe('ReadonlyIdSet', () => {
     it('should create a prefilled set', () => {
       const testObject = new ReadonlyIdSet(testSet);
       expect(testObject).toBeDefined();
+    });
+
+    it('should use the original values if cloneValues is false or undefined', () => {
+      const testObject = new ReadonlyIdSet([value1, value2]);
+      expect(testObject.get(value1.id)).toBe(value1);
+    });
+
+    it('should clone the values if cloneValues is true', () => {
+      const testObject = new ReadonlyIdSet([value1, value2], true);
+      expect(testObject.get(value1.id)).not.toBe(value1);
+      expect(testObject.get(value1.id)).toEqual(value1);
     });
   });
 

@@ -227,8 +227,9 @@ It is an IdSet that, as the name implies is readonly. This means that it provide
 
 The methods and properties that define the basic functionality of the `IdSet` classes are described below.
 
-#### `constructor(values?: Iterable<IdValue>)`
-- Creates a new Set based the values given. If no values are supplied an empty Set is created.
+#### `constructor(values?: Iterable<IdValue>, cloneValues = false)`
+* Creates a new Set based the values given. If no values are supplied an empty Set is created.
+* It will deep clone the values using `structuredClone()` if `cloneValues` is true.
 
 #### `all$: Observable<IdValue>` 
 - Observable that returns all values currently in the set one by one and then completes.
@@ -404,7 +405,7 @@ set1.allAdd$.subscribe(value => console.log(`Added to set2: ${value}`));
 #### `constructor(values?: OneOrMore<[IdValue, Iterable<SetId>]>, cloneValues = false)`
 * You can use the `export()` method to create values for the constructor to duplicate an existing 
 `ContainerIdSet`.
-* It will deep clone the values given if `cloneValues` is true.
+* It will deep clone the values using `structuredClone()` if `cloneValues` is true.
 
 #### `sets: ReadonlyMap<SetId, IdSet>`
 - A Map containing all SetIds with their corresponding IdSet.

@@ -1,6 +1,7 @@
 # Change Log
 
 ## 1.0.2
+- added cloneValues optional parameter to the ReadonlyIdSet constructor
 - updated README.md
 
 ## 1.0.1

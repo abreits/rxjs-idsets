@@ -50,7 +50,7 @@ export class ReadonlyIdSet<IdValue extends IdObject<Id>, Id = string> {
    */
   get add$(): Observable<IdValue> {
     return merge(this.createSubject$, this.updateSubject$);
-  } 
+  }
 
   /**
    * Observable returning all values currently present and values added later
@@ -59,9 +59,13 @@ export class ReadonlyIdSet<IdValue extends IdObject<Id>, Id = string> {
     return concat(this.all$, this.add$);
   }
 
-  constructor(values?: Iterable<IdValue>) {
+  /**
+   * It will deep clone the values if `cloneValues` is true.
+   */
+  constructor(values?: Iterable<IdValue>, cloneValues = false) {
     if (values) {
-      for (const value of values) {
+      for (let value of values) {
+        value = cloneValues ? structuredClone(value) : value;
         this.idMap.set(value.id, value);
       }
     }
