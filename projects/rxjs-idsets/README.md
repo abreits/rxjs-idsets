@@ -297,12 +297,13 @@ The `IdSet` class extends the `ReadonlyIdClass` with the methods described below
 - If a value with the specified `id` exists, it is deleted from the set and the deleted value is published
 to the `delete$` Observable.
 
-#### `replace(values: OneOrMore<IdValue>)`
+#### `replace(values: OneOrMore<IdValue>, cloneValues = false)`
 - Replaces the existing set with the defined values.
 - If a new value does not exist, it is added and the value is published to the `create$`, `add$` and `allAdd$` Observables.
 - If a value already exists, but is updated, it is replaced and the value is published to the `update$`, `add$` and `allAdd$` Observables.
 - If an original value no longer exists, it is deleted and the deleted value is published
 to the `delete$` Observable.
+- It will deep clone the values using `structuredClone()` if `cloneValues` is true.
 
 #### `clear()`
 - Removes all existing values from the set.

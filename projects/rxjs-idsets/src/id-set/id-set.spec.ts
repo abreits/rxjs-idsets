@@ -196,6 +196,13 @@ describe('IdSet', () => {
 
       testObject.complete();
     });
+
+    it('should clone the values if cloneValues is true', () => {
+      const testObject = new IdSet(idSet123);
+      testObject.replace(idSet123, true);
+      expect(testObject.get(value1.id)).not.toBe(value1);
+      expect(testObject.get(value1.id)).toEqual(value1);
+    });
   });
 
   describe('clear', () => {

@@ -53,14 +53,16 @@ export class IdSet<IdValue extends IdObject<Id>, Id = string> extends ReadonlyId
 
   /**
    * Replaces all existing values and returns the resulting set.
+   * Create deep clones of the values if cloneValues is true
    * 
    * Existing subscriptions remain active.
    */
-  replace(values: OneOrMore<IdValue>) {
+  replace(values: OneOrMore<IdValue>, cloneValues = false) {
     const newEntriesSet = new Set<Id>();
 
     // update additions and modifications
     oneOrMoreForEach(values, value => {
+      value = cloneValues ? structuredClone(value) : value;
       newEntriesSet.add(value.id);
       this.add(value);
     });
