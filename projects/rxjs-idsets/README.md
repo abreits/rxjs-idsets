@@ -44,6 +44,9 @@ interface IdObject<Id = string> {
   id: Id
 }
 ```
+
+The uniqueness of a value in an IdSet is defined by the value of its id. If you add an element to an IdSet with an id that already exists in the set, the existing value will be updated to the new value and the change to the IdSet will be published through the appropriate Observables.
+
 This library provides the following `IdSet` classes:
 - **`IdSet`** is the basic _observable_ `Set`
 - **`ReadOnlyIdSet`** is an _observable_ `ReadonlySet` version of the `IdSet`
@@ -83,26 +86,50 @@ The `IdSet` is the basic class this library is built upon, it provides all norma
 // create a new set containing 3 values, values implement IdObject interface
 const exampleSet = new IdSet([value1, value2, value3]);
 
-// subscribe to add$
+// subscribe to an obsevable that emits all new values added to the set
 exampleSet.all$.subscribe(value => console.log('created or updated', value));
 
-// start: [value1, value2, value3]
+// add a new value to the set
+// where exampleSet already contains [value1, value2, value3]
 exampleSet.add(value4);
-// result: [value1, value2, value3, value4]
+// exampleset now contains [value1, value2, value3, value4]
+// the exampleset.create$, .add$ and .allAdd$ observables publish value4
+
+// update an existing value
 exampleSet.add(value1update); 
-// result: [value1update, value2, value3, value4]
+// exampleset now contains [value1update, value2, value3, value4]
+// the exampleset.update$, .add$ and .allAdd$ observables publish value1update
+
+// delete a value from the set
 exampleSet.delete(value1.id); 
-// result: [value2, value3, value4]
+// exampleset now contains [value2, value3, value4]
+// the exampleset.delete$ observable publishes value1
+
+// replace the contents of the set
 exampleSet.replace([value1, value2update, value3]); 
-// result: [value1, value2update, value3]
+// exampleset now contains [value1, value2update, value3]
+// the exampleset.create$ observable publishes value1
+// the exampleset.update$ observable publishes value2update
+// the exampleset.add$ and .allAdd$ observables publish value1 and value2update
+// the exampleset.delete$ observable publishes value4
+
+// delete all content from the set
 exampleSet.clear(); 
-// result: []
+// exampleset now contains []
+// the delete$ observable 
+
+// close all subscritions to the set
 exampleSet.complete();
-// all subscriptions are closed, no updates will be published any more
+// completes all existing and new subscriptions ('unsubscribes' them)
+// all existing and new subscriptions will no longer receive added, updated or deleted values
 ```
 A more complete example for the IdSet can be found in [example1.ts](./examples/example1.ts)
 
 ## Example 2, UnionIdSet
+
+The `UnionIdSet` is a computed IdSet that is the live representation of the mathematical union of two
+or more IdSets. 
+Updates in one of the source sets are immediately processed in the union set. The UnionIdSet observables publish the changes.
 
 ``` typescript
 const set1 = new IdSet([value1, value2]);
@@ -123,6 +150,8 @@ set1.delete(value1);
 
 ## Example 3, IntersectionIdSet
 
+The `IntersectionIdSet` is a computed IdSet that is the live representation of the mathematical intersection of two or more IdSets. 
+Updates in one of the source sets are immediately processed in the intersection set. The IntersectionIdSet observables publish the changes.
 ``` typescript
 const set1 = new IdSet([value1, value2]);
 const set2 = new IdSet([value2, value3]);
@@ -142,11 +171,13 @@ set1.add(value3);
 
 ## Example 4, DifferenceIdSet
 
+The `DifferenceIdSet` is a computed IdSet that is the live representation of the a source IdSet from which the elements contained in one or more other IdSets are subtracted. 
+Updates in one of the sets are immediately processed in the difference set. The DifferenceIdSet observables publish the changes.
 ``` typescript
 const sourceSet = new IdSet([value1, value2, value3])
 const subtractSet1 = new IdSet([value1]);
 const subtractSet2 = new IdSet([value2]);
-const differenceResultSet = new DifferenceIdSet([set1, set2]);
+const differenceResultSet = new DifferenceIdSet(sourceSet, [set1, set2]);
 // differenceResultSet: [value3]
 
 // subscribe to create$
@@ -162,25 +193,27 @@ subtractSet1.delete(value1);
 
 ## Example 5, ContainerIdSet
 
+The `ContainerIdSet` is an IdSet that consists of named subsets
+
 ``` typescript
 const container = new ContainerIdSet();
 
-// add value1 to the set in category1
+// add value1 to the IdSet 'set1', create the IdSet if it does not altready exist
 container.add(value1, 'set1');
 
-// create a new empty set inside the container
+// create a new empty IdSet inside the container if a set with that name does not exist
 const set2 = container.getSet('set2');
-// if the set already contains values get the existing set
+// if the set already contains values get the existing IdSet
 const set1 = container.getSet('set1');
 
-// you can add multiple values to multiple sets at once if you want to
+// you can add multiple values to multiple IdSets at once if you want to
 container.add([value2, value3], ['set1', 'set2', 'set3']);
 // container now contains [value1, value2 value3]
 // set1 now contains [value1, value2, value3]
 // set2 now contains [value2, value3]
 // there is also a 'set3' in the container containing [value2, value3]
 
-// add or replace value1 omly in the specified sets
+// add or replace value1 only in the specified IdSets
 // remove from all other sets if it exists there
 container.addExclusive(value3, ['set2', 'set3']);
 // container still contains [value1, value2 value3]

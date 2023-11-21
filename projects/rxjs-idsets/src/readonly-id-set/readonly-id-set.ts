@@ -1,8 +1,8 @@
-import { from, Subject, concat, merge, Observable } from 'rxjs';
-import { IdObject } from '../types';
+import { from, Subject, concat, merge, Observable, map } from 'rxjs';
+import { DeltaValue, IdObject } from '../types';
 
 /**
- * Parent class for all IdSet classes containig all basic functionality
+ * Parent class for all IdSet classes containing all basic functionality
  */
 export class ReadonlyIdSet<IdValue extends IdObject<Id>, Id = string> {
   protected idMap = new Map<Id, IdValue>();
@@ -35,7 +35,7 @@ export class ReadonlyIdSet<IdValue extends IdObject<Id>, Id = string> {
    * Observable returning values created later
    */
   get create$(): Observable<IdValue> {
-    return this.createSubject$;
+    return this.createSubject$.asObservable();
   }
 
   /**
@@ -60,6 +60,26 @@ export class ReadonlyIdSet<IdValue extends IdObject<Id>, Id = string> {
   }
 
   /**
+   * Return all future changes in a single Observable (created, updated and deleted)
+   */
+  get delta$(): Observable<DeltaValue<IdValue, Id>> {
+    return merge(
+      this.createSubject$.pipe(map(value => ({ create: value }))),
+      this.updateSubject$.pipe(map(value => ({ update: value }))),
+      this.deleteSubject$.pipe(map(value => ({ delete: value })))
+    );
+  }
+
+  /**
+   * Return all current and future changes in a single Observable (created, updated and deleted)
+   */
+  get allDelta$(): Observable<DeltaValue<IdValue, Id>> {
+    return concat(
+      this.all$.pipe(map(value => ({ create: value }))),
+      this.delta$);
+  }
+
+  /**
    * It will deep clone the values if `cloneValues` is true.
    */
   constructor(values?: Iterable<IdValue>, cloneValues = false) {
@@ -78,6 +98,40 @@ export class ReadonlyIdSet<IdValue extends IdObject<Id>, Id = string> {
     this.createSubject$.complete();
     this.updateSubject$.complete();
     this, this.deleteSubject$.complete();
+  }
+
+  /**
+   * Protected method to add a value to the set, publishes changes to relevant observables
+   */
+  protected addValue(value: IdValue) {
+    const id = value.id;
+    const currentValue = this.idMap.get(id);
+    if (currentValue !== value) {
+      if (currentValue) {
+        this.idMap.set(id, value);
+        if (this.updateSubject$.observed) {
+          this.updateSubject$.next(value);
+        }
+      } else {
+        this.idMap.set(id, value);
+        if (this.createSubject$.observed) {
+          this.createSubject$.next(value);
+        }
+      }
+    }
+  }
+
+  /**
+   * Protected method to delete a value from the set, publishes changes to relevant observables
+   */
+  protected deleteId(id: Id): boolean {
+    const deletedItem = this.idMap.get(id);
+    if (deletedItem) {
+      this.idMap.delete(id);
+      this.deleteSubject$.next(deletedItem);
+      return true;
+    }
+    return false;
   }
 
   // ----------------------------------------------------------------------------------------

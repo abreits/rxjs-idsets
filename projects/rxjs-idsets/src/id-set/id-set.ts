@@ -16,21 +16,7 @@ export class IdSet<IdValue extends IdObject<Id>, Id = string> extends ReadonlyId
    */
   add(values: OneOrMore<IdValue>) {
     oneOrMoreForEach(values, value => {
-      const id = value.id;
-      const currentValue = this.idMap.get(id);
-      if (currentValue !== value) {
-        if (currentValue) {
-          this.idMap.set(id, value);
-          if (this.updateSubject$.observed) {
-            this.updateSubject$.next(value);
-          }
-        } else {
-          this.idMap.set(id, value);
-          if (this.createSubject$.observed) {
-            this.createSubject$.next(value);
-          }
-        }
-      }
+      super.addValue(value);
     });
     return this;
   }
@@ -41,10 +27,7 @@ export class IdSet<IdValue extends IdObject<Id>, Id = string> extends ReadonlyId
   delete(ids: OneOrMore<Id>): boolean {
     let deleted = false;
     oneOrMoreForEach(ids, id => {
-      const deletedItem = this.idMap.get(id);
-      if (deletedItem) {
-        this.idMap.delete(id);
-        this.deleteSubject$.next(deletedItem);
+      if (this.deleteId(id)) {
         deleted = true;
       }
     });
