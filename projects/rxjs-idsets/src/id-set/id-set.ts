@@ -2,9 +2,6 @@ import { IdObject } from '../types';
 import { ReadonlyIdSet } from '../readonly-id-set/readonly-id-set';
 import { OneOrMore, oneOrMoreForEach } from '../utility/one-or-more';
 
-export interface IdMapSettings {
-  id: string;
-}
 
 /**
  * A Set containing IdObjects that publishes changes through Observables.
@@ -63,14 +60,7 @@ export class IdSet<IdValue extends IdObject<Id>, Id = string> extends ReadonlyId
    * 
    * Existing subscriptions remain active.
    */
-  clear() {
-    if (this.deleteSubject$.observed) {
-      const oldIdMap = this.idMap;
-      this.idMap = new Map();
-      oldIdMap.forEach(value => this.deleteSubject$.next(value));
-    } else {
-      this.idMap.clear();
-    }
-    return this;
+  override clear() {
+    return super.clear();
   }
 }

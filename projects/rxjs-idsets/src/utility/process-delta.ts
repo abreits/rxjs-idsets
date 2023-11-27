@@ -1,57 +1,73 @@
-import { Observable, OperatorFunction, map, mergeMap } from 'rxjs';
+import { EMPTY, Observable, map, merge, mergeMap } from 'rxjs';
 import { DeltaValue, IdObject } from '../types';
+import { oneOrMoreForEach, oneOrMoreMap } from './one-or-more';
+
 
 type DeltaFunction<IdValue extends IdObject<Id>, Id = string> = (idValue: IdValue) => void;
-
-export function processDelta<IdValue extends IdObject<Id>, Id = string>(delta: DeltaValue<IdValue, Id>, processFunction: {
+/**
+ * Process the create, update and/or delete values of the delta
+ */
+export function processDelta<IdValue extends IdObject<Id>, Id = string>(delta: DeltaValue<IdValue>, processFunction: {
   create?: DeltaFunction<IdValue, Id>,
   update?: DeltaFunction<IdValue, Id>,
   delete?: DeltaFunction<IdValue, Id>,
-}) {
-  if (delta.create) {
-    return processFunction.create?.(delta.create);
-  } else if (delta.update) {
-    return processFunction.update?.(delta.update);
-  } else {
-    // the delete property exists, only typescript is not that smart
-    return processFunction.update?.(delta.delete as IdValue);
+}): void {
+  if (delta.create && processFunction.create) {
+    oneOrMoreForEach(delta.create, processFunction.create);
+  }
+  if (delta.update && processFunction.update) {
+    oneOrMoreForEach(delta.update, processFunction.update);
+  }
+  if (delta.delete && processFunction.delete) {
+    oneOrMoreForEach(delta.delete, processFunction.delete);
   }
 }
 
 type MapDeltaFunction<ResultType, IdValue extends IdObject<Id>, Id = string> = (idValue: IdValue) => ResultType;
-
-export function mapDelta<ResultType, IdValue extends IdObject<Id>, Id = string>(processFunction: {
-  create: MapDeltaFunction<ResultType, IdValue, Id>,
-  update: MapDeltaFunction<ResultType, IdValue, Id>,
-  delete: MapDeltaFunction<ResultType, IdValue, Id>,
-}): OperatorFunction<DeltaValue<IdValue, Id>, ResultType> {
-  return map((delta: DeltaValue<IdValue, Id>) => {
+/**
+ * RxJS operator that processes all create, update and delete values of the delta with the same function and passes the resulting delta on
+ */
+export function mapDelta<ResultType, IdValue extends IdObject<Id>, Id = string>(processFunction: MapDeltaFunction<ResultType, IdValue, Id>) {
+  return map((delta: DeltaValue<IdValue>) => {
+    const result: DeltaValue<ResultType> = {};
     if (delta.create) {
-      return processFunction.create(delta.create);
-    } else if (delta.update) {
-      return processFunction.update(delta.update);
-    } else {
-      // the delete property exists, only typescript is not that smart
-      return processFunction.update(delta.delete as IdValue);
+      result.create = oneOrMoreMap(delta.create, processFunction);
     }
+    if (delta.update) {
+      result.update = oneOrMoreMap(delta.update, processFunction);
+    }
+    if (delta.delete) {
+      result.delete = oneOrMoreMap(delta.delete, processFunction);
+    }
+    return result;
   });
 }
 
-type MergeMapDeltaFunction<ResultType, IdValue extends IdObject<Id>, Id = string> = (idValue: IdValue) => Observable<ResultType>;
 
+type MergeMapDeltaFunction<ResultType, IdValue extends IdObject<Id>, Id = string> = (idValue: IdValue) => Observable<ResultType>;
+/**
+ * RxJS operator that processes the create, update and/or delete values of the delta and passes the result(s) on as individual observable values
+ */
 export function mergeMapDelta<ResultType, IdValue extends IdObject<Id>, Id = string>(processFunction: {
-  create: MergeMapDeltaFunction<ResultType, IdValue, Id>,
-  update: MergeMapDeltaFunction<ResultType, IdValue, Id>,
-  delete: MergeMapDeltaFunction<ResultType, IdValue, Id>,
-}): OperatorFunction<DeltaValue<IdValue, Id>, ResultType> {
-  return mergeMap((delta: DeltaValue<IdValue, Id>) => {
-    if (delta.create) {
-      return processFunction.create(delta.create);
-    } else if (delta.update) {
-      return processFunction.update(delta.update);
+  create?: MergeMapDeltaFunction<ResultType, IdValue, Id>,
+  update?: MergeMapDeltaFunction<ResultType, IdValue, Id>,
+  delete?: MergeMapDeltaFunction<ResultType, IdValue, Id>,
+}) {
+  return mergeMap((delta: DeltaValue<IdValue>) => {
+    let results: Observable<ResultType>[] = [];
+    if (delta.create && processFunction.create) {
+      results = results.concat(oneOrMoreMap(delta.create, processFunction.create));
+    }
+    if (delta.update && processFunction.update) {
+      results = results.concat(oneOrMoreMap(delta.update, processFunction.update));
+    }
+    if (delta.delete && processFunction.delete) {
+      results = results.concat(oneOrMoreMap(delta.delete, processFunction.delete));
+    }
+    if (results.length === 0) {
+      return EMPTY;
     } else {
-      // the delete property exists, only typescript is not that smart
-      return processFunction.update(delta.delete as IdValue);
+      return merge(...results);
     }
   });
 }

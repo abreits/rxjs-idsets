@@ -5,9 +5,14 @@ import { DeltaValue, IdObject } from '../types';
  * Parent class for all IdSet classes containing all basic functionality
  */
 export class ReadonlyIdSet<IdValue extends IdObject<Id>, Id = string> {
+  // do not manipulate these properties directly unless you know what you are doing!
+  /** WARNING: Do not use! Use addValue(), deleteId() or clear() */
   protected idMap = new Map<Id, IdValue>();
+  /** WARNING: Do not use! Use addValue(), deleteId() or clear() */
   protected createSubject$ = new Subject<IdValue>();
+  /** WARNING: Do not use! Use addValue(), deleteId() or clear() */
   protected updateSubject$ = new Subject<IdValue>();
+  /** WARNING: Do not use! Use addValue(), deleteId() or clear() */
   protected deleteSubject$ = new Subject<IdValue>();
 
   /**
@@ -62,7 +67,7 @@ export class ReadonlyIdSet<IdValue extends IdObject<Id>, Id = string> {
   /**
    * Return all future changes in a single Observable (created, updated and deleted)
    */
-  get delta$(): Observable<DeltaValue<IdValue, Id>> {
+  get delta$(): Observable<DeltaValue<IdValue>> {
     return merge(
       this.createSubject$.pipe(map(value => ({ create: value }))),
       this.updateSubject$.pipe(map(value => ({ update: value }))),
@@ -73,7 +78,7 @@ export class ReadonlyIdSet<IdValue extends IdObject<Id>, Id = string> {
   /**
    * Return all current and future changes in a single Observable (created, updated and deleted)
    */
-  get allDelta$(): Observable<DeltaValue<IdValue, Id>> {
+  get allDelta$(): Observable<DeltaValue<IdValue>> {
     return concat(
       this.all$.pipe(map(value => ({ create: value }))),
       this.delta$);
@@ -102,6 +107,8 @@ export class ReadonlyIdSet<IdValue extends IdObject<Id>, Id = string> {
 
   /**
    * Protected method to add a value to the set, publishes changes to relevant observables
+   * 
+   * For use in child classes
    */
   protected addValue(value: IdValue) {
     const id = value.id;
@@ -123,6 +130,8 @@ export class ReadonlyIdSet<IdValue extends IdObject<Id>, Id = string> {
 
   /**
    * Protected method to delete a value from the set, publishes changes to relevant observables
+   * 
+   * For use in child classes
    */
   protected deleteId(id: Id): boolean {
     const deletedItem = this.idMap.get(id);
@@ -132,6 +141,23 @@ export class ReadonlyIdSet<IdValue extends IdObject<Id>, Id = string> {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Removes all values and returns the resulting empty set.
+   * Existing subscriptions remain active.
+   * 
+   * For use in child classes
+   */
+  protected clear() {
+    if (this.deleteSubject$.observed) {
+      const oldIdMap = this.idMap;
+      this.idMap = new Map();
+      oldIdMap.forEach(value => this.deleteSubject$.next(value));
+    } else {
+      this.idMap.clear();
+    }
+    return this;
   }
 
   // ----------------------------------------------------------------------------------------

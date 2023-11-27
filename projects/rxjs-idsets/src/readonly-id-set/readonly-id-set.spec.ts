@@ -1,5 +1,7 @@
-import { IdObject } from '../types';
+import { create } from 'domain';
+import { DeltaValue, IdObject } from '../types';
 import { ReadonlyIdSet } from './readonly-id-set';
+import { IdSet } from '../public-api';
 
 const value1 = { id: '1' };
 const value2 = { id: '2' };
@@ -152,18 +154,83 @@ describe('ReadonlyIdSet', () => {
     });
   });
 
+  describe('delta$', () => {
+    it('should return a DeltaValue observable and make the set observed', () => {
+      const testObject = new ReadonlyIdSet(testSet);
+
+      const subscription = testObject.delta$.subscribe();
+      expect(subscription.closed).toBeFalse();
+      expect(testObject.observed).toBeTrue();
+
+      subscription.unsubscribe();
+      expect(testObject.observed).toBeFalse();
+    });
+
+    it('should return a DeltaValue create observable when a value is added to the set', () => {
+      const testObject = new IdSet(); // use IdSet to test modifications
+      let result: DeltaValue<IdObject> | undefined;
+      const subscription = testObject.delta$.subscribe(value => result = value);
+
+      testObject.add({ id: '1' });
+      expect(result).toEqual({ create: { id: '1' } });
+
+      subscription.unsubscribe();
+    });
+
+    it('should return a DeltaValue update observable when a value is updated in the set', () => {
+      const testObject = new IdSet(testSet); // use IdSet to test modifications
+      let result: DeltaValue<IdObject> | undefined;
+      const subscription = testObject.delta$.subscribe(value => result = value);
+
+      testObject.add({ id: '1' });
+      expect(result).toEqual({ update: { id: '1' } });
+
+      subscription.unsubscribe();
+    });
+
+    it('should return a DeltaValue delete observable when a value is deleted from the set', () => {
+      const testObject = new IdSet(testSet); // use IdSet to test modifications
+      let result: DeltaValue<IdObject> | undefined;
+      const subscription = testObject.delta$.subscribe(value => result = value);
+
+      testObject.delete('1');
+      expect(result).toEqual({ delete: { id: '1' } });
+
+      subscription.unsubscribe();
+    });
+  });
+
+  describe('allDelta$', () => {
+    it('should return all existing values as DeltaValues in an observable and make the set observed', () => {
+      const testObject = new ReadonlyIdSet(testSet);
+      const results: DeltaValue<IdObject>[] = [];
+
+      const subscription = testObject.allDelta$.subscribe(value => results.push(value));
+      expect(results).toEqual(testSet.map(value => ({ create: value })));
+      expect(subscription.closed).toBeFalse();
+      expect(testObject.observed).toBeTrue();
+
+      subscription.unsubscribe();
+      expect(testObject.observed).toBeFalse();
+    });
+  });
+
   describe('complete', () => {
     it('should complete all existing subscriptions', () => {
       const testObject = new ReadonlyIdSet(testSet);
       // activate all subscriptions
       const addSubscription = testObject.add$.subscribe();
       const allAddSubscription = testObject.allAdd$.subscribe();
+      const deltaSubscription = testObject.delta$.subscribe();
+      const allDeltaSubscription = testObject.allDelta$.subscribe();
       const createSubscription = testObject.create$.subscribe();
       const updateSubscription = testObject.update$.subscribe();
       const deleteSubscription = testObject.delete$.subscribe();
 
       expect(addSubscription.closed).toBeFalse();
       expect(allAddSubscription.closed).toBeFalse();
+      expect(deltaSubscription.closed).toBeFalse();
+      expect(allDeltaSubscription.closed).toBeFalse();
       expect(createSubscription.closed).toBeFalse();
       expect(updateSubscription.closed).toBeFalse();
       expect(deleteSubscription.closed).toBeFalse();
@@ -172,9 +239,11 @@ describe('ReadonlyIdSet', () => {
 
       expect(addSubscription.closed).toBeTrue();
       expect(allAddSubscription.closed).toBeTrue();
+      expect(deltaSubscription.closed).toBeTrue();
+      expect(allDeltaSubscription.closed).toBeTrue();
       expect(createSubscription.closed).toBeTrue();
       expect(updateSubscription.closed).toBeTrue();
-      expect(deleteSubscription.closed).toBeTrue();      
+      expect(deleteSubscription.closed).toBeTrue();
     });
   });
 
