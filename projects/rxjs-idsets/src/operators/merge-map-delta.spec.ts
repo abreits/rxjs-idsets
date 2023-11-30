@@ -1,5 +1,7 @@
-import { DeltaProcessor, DeltaProperty, DeltaValue, IdObject } from '../types';
-import { processDelta } from './process-delta';
+import { of } from 'rxjs';
+import { DeltaProcessor, DeltaProperty, DeltaValue, IdObject, MergeMapDeltaProcessor } from '../types';
+import { mergeMapDelta } from './merge-map-delta';
+
 
 const propertyPermutations: DeltaProperty[][] = [];
 
@@ -33,14 +35,11 @@ function createTestItem(deltaProperties: DeltaProperty[], deltaFunctions: DeltaP
 }
 
 const transformFunction = (value: string) => value + ' processed';
-
-
-let testResult: string[] = [];
-const processFunction = (value: IdObject) => {
-  testResult.push(transformFunction(value.id));
+const mapFunction = (value: IdObject) => {
+  return of(transformFunction(value.id));
 };
 
-describe('processDelta', () => {
+describe('mergeMapDelta', () => {
   propertyPermutations.forEach(deltaproperty => {
     propertyPermutations.forEach(deltafunction => {
       const testItem = createTestItem(deltaproperty, deltafunction, transformFunction);
@@ -51,21 +50,13 @@ describe('processDelta', () => {
       it(`should process deltas with properties [${testProperties}] and processing functions for [${testFunctions}] to [${testResults}] `, () => {
         const testDelta: DeltaValue = {};
         testItem.deltaProperties.forEach(property => testDelta[property] = { id: property });
-        const testProcessor: DeltaProcessor<IdObject> = {};
-        testItem.deltaFunctions.forEach(property => testProcessor[property] = processFunction);
+        const testProcessor: MergeMapDeltaProcessor<string, IdObject> = {};
+        testItem.deltaFunctions.forEach(property => testProcessor[property] = mapFunction);
 
-        testResult = [];
-        processDelta(testDelta, testProcessor);
+        const testResult: string[] = [];
+        of(testDelta).pipe(mergeMapDelta(testProcessor)).subscribe(result => testResult.push(result as string));
         expect(testResult).toEqual(testItem.expectedResult);
-
       });
     });
   });
-  // it('should process the create, update and/or delete fields with the supplied function', () => {
-  //   for (const test of testSet) {
-  //     processResult = [];
-  //     processDelta(test.testDelta, test.testProcessFunction);
-  //     expect(processResult).toEqual(test.testResult);
-  //   }
-  // });
 });

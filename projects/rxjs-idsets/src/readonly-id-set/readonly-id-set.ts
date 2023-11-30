@@ -1,4 +1,4 @@
-import { from, Subject, concat, merge, Observable, map } from 'rxjs';
+import { from, Subject, concat, merge, Observable, map, of } from 'rxjs';
 import { DeltaValue, IdObject } from '../types';
 
 /**
@@ -80,7 +80,7 @@ export class ReadonlyIdSet<IdValue extends IdObject<Id>, Id = string> {
    */
   get allDelta$(): Observable<DeltaValue<IdValue>> {
     return concat(
-      this.all$.pipe(map(value => ({ create: value }))),
+      of({ create: this.idMap.values() }),
       this.delta$);
   }
 

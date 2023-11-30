@@ -1,7 +1,7 @@
-import { create } from 'domain';
 import { DeltaValue, IdObject } from '../types';
 import { ReadonlyIdSet } from './readonly-id-set';
 import { IdSet } from '../public-api';
+import { processDelta } from '../utility/process-delta';
 
 const value1 = { id: '1' };
 const value2 = { id: '2' };
@@ -203,10 +203,12 @@ describe('ReadonlyIdSet', () => {
   describe('allDelta$', () => {
     it('should return all existing values as DeltaValues in an observable and make the set observed', () => {
       const testObject = new ReadonlyIdSet(testSet);
-      const results: DeltaValue<IdObject>[] = [];
+      const results: IdObject[] = [];
 
-      const subscription = testObject.allDelta$.subscribe(value => results.push(value));
-      expect(results).toEqual(testSet.map(value => ({ create: value })));
+      const subscription = testObject.allDelta$.subscribe(delta => processDelta(delta, {
+        create: value => results.push(value)
+      }));
+      expect(results).toEqual(testSet);
       expect(subscription.closed).toBeFalse();
       expect(testObject.observed).toBeTrue();
 
