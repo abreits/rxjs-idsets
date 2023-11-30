@@ -1,21 +1,9 @@
 import { of } from 'rxjs';
 import { DeltaProperty, DeltaValue, IdObject } from '../types';
 import { mapDelta } from './map-delta';
+import { getDeltaPropertyPermutations } from '../utility/test-utilities.spec';
 
-const propertyPermutations: DeltaProperty[][] = [];
-
-const deltaProperties: DeltaProperty[] = ['create', 'update', 'delete'];
-
-// create all permutations
-for (let i = 0; i < Math.pow(2, deltaProperties.length); i++) {
-  const entry: DeltaProperty[] = [];
-  for (let j = 0; j < deltaProperties.length; j++) {
-    if ((i >>> j) % 2 === 1) {
-      entry.push(deltaProperties[j]);
-    }
-  }
-  propertyPermutations.push(entry);
-}
+const deltaPropertyPermutations = getDeltaPropertyPermutations();
 
 type TestItem = {
   deltaProperties: DeltaProperty[];
@@ -32,7 +20,7 @@ const transformFunction = (value: IdObject) => {
 };
 
 describe('mapDelta', () => {
-  propertyPermutations.forEach(deltaproperty => {
+  deltaPropertyPermutations.forEach(deltaproperty => {
     const testItem = createTestItem(deltaproperty, transformFunction);
     const testProperties = testItem.deltaProperties.join(', ');
     const testResult = JSON.stringify(testItem.expectedResult);

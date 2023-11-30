@@ -1,21 +1,8 @@
 import { DeltaProcessor, DeltaProperty, DeltaValue, IdObject } from '../types';
 import { processDelta } from './process-delta';
+import { getDeltaPropertyPermutations } from './test-utilities.spec';
 
-const propertyPermutations: DeltaProperty[][] = [];
-
-// const processFunction = (idObject: IdObject) => (testEntries.push(idObject.id));
-const deltaProperties: DeltaProperty[] = ['create', 'update', 'delete'];
-
-// create all permutations
-for (let i = 0; i < Math.pow(2, deltaProperties.length); i++) {
-  const entry: DeltaProperty[] = [];
-  for (let j = 0; j < deltaProperties.length; j++) {
-    if ((i >>> j) % 2 === 1) {
-      entry.push(deltaProperties[j]);
-    }
-  }
-  propertyPermutations.push(entry);
-}
+const deltaPropertyPermutations = getDeltaPropertyPermutations();
 
 type TestItem = {
   deltaProperties: DeltaProperty[];
@@ -41,8 +28,8 @@ const processFunction = (value: IdObject) => {
 };
 
 describe('processDelta', () => {
-  propertyPermutations.forEach(deltaproperty => {
-    propertyPermutations.forEach(deltafunction => {
+  deltaPropertyPermutations.forEach(deltaproperty => {
+    deltaPropertyPermutations.forEach(deltafunction => {
       const testItem = createTestItem(deltaproperty, deltafunction, transformFunction);
       const testProperties = testItem.deltaProperties.join(', ');
       const testFunctions = testItem.deltaFunctions.join(', ');
