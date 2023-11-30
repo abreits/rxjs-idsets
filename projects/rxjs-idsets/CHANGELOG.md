@@ -1,5 +1,12 @@
 # Change Log
 
+## 1.1.0
+- added 'delta' support
+  - added DeltaValue type so you can track all IdSet changes (create, update and delete) with one observable
+  - added delta$ and allDelta$ DeltaValue Observables to all IdSets
+  - added mapDelta and mergMapDelta DeltaValue operators
+  - added processDelta DeltaValue utility function
+
 ## 1.0.3
 - added cloneValues optional parameter to the IdSet replace method
 
