@@ -133,11 +133,13 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
       this.deleteDelta.forEach(value => this.deleteSubject$.next(value));
       this.updateDelta.forEach(value => this.updateSubject$.next(value));
       this.createDelta.forEach(value => this.createSubject$.next(value));
-      this.deltaSubject$.next({
-        create: this.createDelta.values(),
-        update: this.updateDelta.values(),
-        delete: this.deleteDelta.values()
-      });
+      if (this.createDelta.size > 0 || this.updateDelta.size > 0 || this.deleteDelta.size > 0) {
+        this.deltaSubject$.next({
+          create: this.createDelta.values(),
+          update: this.updateDelta.values(),
+          delete: this.deleteDelta.values()
+        });
+      }
       // initialize delta's so they are ready for a new pause()
       this.createDelta.clear();
       this.updateDelta.clear();
@@ -210,6 +212,7 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
             this.createDelta.delete(id);
           } else {
             // value existed before the pause started
+            this.updateDelta.delete(id);
             this.deleteDelta.set(id, deletedValue);
           }
         } else {

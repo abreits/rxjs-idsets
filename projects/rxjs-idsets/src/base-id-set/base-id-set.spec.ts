@@ -2,6 +2,7 @@ import { DeltaValue, IdObject } from '../types';
 import { BaseIdSet } from './base-id-set';
 import { IdSet } from '../public-api';
 import { processDelta } from '../utility/process-delta';
+import { oneOrMoreForEach } from '../utility/one-or-more';
 
 const value1 = { id: '1' };
 const value2 = { id: '2' };
@@ -300,15 +301,252 @@ describe('BaseIdSet', () => {
   });
 
   describe('pause and resume', () => {
-    describe('pause()', () => {
-      it('should no longer send updates', () => {
-        // TODO
+
+    it('should throw an error when a resume is called without a previous pause', () => {
+      const testIdSet = new IdSet(testSet);
+      expect(() => testIdSet.resume()).toThrowError('IdSet error: resume() called with no pause() pending');
+    });
+
+    describe('test combinations for delta$ subscription ', () => {
+      let deltaResults: string[];
+      let deltaResultsCount: number;
+      let testIdSet: IdSet<IdObject>;
+
+      beforeEach(() => {
+        deltaResults = [];
+        deltaResultsCount = 0;
+
+        testIdSet = new IdSet(testSet);
+
+        testIdSet.delta$.subscribe(delta => {
+          if (delta.create) {
+            oneOrMoreForEach(delta.create, value => deltaResults.push('create ' + value.id));
+          }
+          if (delta.update) {
+            oneOrMoreForEach(delta.update, value => deltaResults.push('update ' + value.id));
+          }
+          if (delta.delete) {
+            oneOrMoreForEach(delta.delete, value => deltaResults.push('delete ' + value.id));
+          }
+          deltaResultsCount++;
+        });
+      });
+
+      afterEach(() => {
+        testIdSet.complete();
+      });
+
+      it('should not send updates while paused', () => {
+        testIdSet.pause();
+
+        testIdSet.add({ id: '4' }); // create
+        testIdSet.add({ id: '2' }); // update
+        testIdSet.delete('1');
+        expect(testIdSet.has('4')).toBeTrue();
+        expect(testIdSet.has('2')).toBeTrue();
+        expect(testIdSet.has('1')).toBeFalse();
+
+        expect(deltaResults).toEqual([]);
+      });
+
+      it('should send paused updates after resume', () => {
+        testIdSet.pause();
+
+        testIdSet.add({ id: '4' }); // create
+        testIdSet.add({ id: '2' }); // update
+        testIdSet.delete('1');
+
+        testIdSet.resume();
+
+        expect(deltaResults).toEqual(['create 4', 'update 2', 'delete 1']);
+        expect(deltaResultsCount).toBe(1);
+      });
+
+      it('should only publish the -delete- update of a value (delete, add, delete) sequence', () => {
+        testIdSet.pause();
+
+        testIdSet.delete('1');
+        testIdSet.add({ id: '1' }); // recreate
+        testIdSet.delete('1');
+
+        testIdSet.resume();
+
+        expect(deltaResults).toEqual(['delete 1']);
+      });
+
+      it('should not publish any update of a value (add, update, delete)', () => {
+        testIdSet.pause();
+
+        testIdSet.add({ id: '4' }); // create
+        testIdSet.add({ id: '4' }); // update
+        testIdSet.delete('4');
+
+        testIdSet.resume();
+
+        expect(deltaResults).toEqual([]);
+        expect(deltaResultsCount).toBe(0);
+      });
+
+      it('should only publish the latest update of a value (update, delete, add)', () => {
+        testIdSet.pause();
+
+        testIdSet.add({ id: '2' }); // update
+        testIdSet.delete('2');
+        testIdSet.add({ id: '2' }); // recreate
+
+
+        testIdSet.resume();
+
+        expect(deltaResults).toEqual(['update 2']);
+      });
+
+      it('should publish all updates in a single DeltaValue', () => {
+        testIdSet.pause();
+
+        testIdSet.delete('1');
+        testIdSet.delete('2');
+        testIdSet.add({ id: '4' }); // create
+        testIdSet.add({ id: '5' }); // create
+        testIdSet.add({ id: '3' }); // update
+
+        testIdSet.resume();
+
+        expect(deltaResults).toEqual(['create 4', 'create 5', 'update 3', 'delete 1', 'delete 2']);
+        expect(deltaResultsCount).toBe(1);
+      });
+
+      it('should combine multiple nested pause() resume() pairs ', () => {
+        testIdSet.pause();
+
+        testIdSet.delete('1');
+        testIdSet.delete('2');
+
+        testIdSet.pause();
+
+        testIdSet.add({ id: '4' }); // create
+        testIdSet.add({ id: '5' }); // create
+
+        testIdSet.resume();
+
+        expect(deltaResults).toEqual([]);
+        expect(deltaResultsCount).toBe(0);
+
+        testIdSet.add({ id: '3' }); // update
+
+        testIdSet.resume();
+
+        expect(deltaResults).toEqual(['create 4', 'create 5', 'update 3', 'delete 1', 'delete 2']);
+        expect(deltaResultsCount).toBe(1);
       });
     });
 
-    describe('resume()', () => {
-      it('should resume sending updates', () => {
-        // TODO
+    describe('test combinations for create$, update$, delete$ subscription ', () => {
+      let createResults: string[];
+      let updateResults: string[];
+      let deleteResults: string[];
+      let testIdSet: IdSet<IdObject>;
+
+      beforeEach(() => {
+        createResults = [];
+        updateResults = [];
+        deleteResults = [];
+
+        testIdSet = new IdSet(testSet);
+
+        testIdSet.create$.subscribe(created => createResults.push(created.id));
+        testIdSet.update$.subscribe(updated => updateResults.push(updated.id));
+        testIdSet.delete$.subscribe(deleted => deleteResults.push(deleted.id));
+      });
+
+      afterEach(() => {
+        testIdSet.complete();
+      });
+
+      it('should not send updates while paused', () => {
+        testIdSet.pause();
+
+        testIdSet.add({ id: '4' }); // create
+        testIdSet.add({ id: '2' }); // update
+        testIdSet.delete('1');
+        expect(testIdSet.has('4')).toBeTrue();
+        expect(testIdSet.has('2')).toBeTrue();
+        expect(testIdSet.has('1')).toBeFalse();
+
+        expect(createResults).toEqual([]);
+        expect(updateResults).toEqual([]);
+        expect(deleteResults).toEqual([]);
+      });
+
+      it('should send paused updates after resume', () => {
+        testIdSet.pause();
+
+        testIdSet.add({ id: '4' }); // create
+        testIdSet.add({ id: '2' }); // update
+        testIdSet.delete('1');
+
+        testIdSet.resume();
+
+        expect(createResults).toEqual(['4']);
+        expect(updateResults).toEqual(['2']);
+        expect(deleteResults).toEqual(['1']);
+      });
+
+      it('should only publish the -delete- update of a value (delete, add, delete) sequence', () => {
+        testIdSet.pause();
+
+        testIdSet.delete('1');
+        testIdSet.add({ id: '1' }); // recreate
+        testIdSet.delete('1');
+
+        testIdSet.resume();
+
+        expect(createResults).toEqual([]);
+        expect(updateResults).toEqual([]);
+        expect(deleteResults).toEqual(['1']);
+      });
+
+      it('should not publish any update of a value (add, update, delete)', () => {
+        testIdSet.pause();
+
+        testIdSet.add({ id: '4' }); // create
+        testIdSet.add({ id: '4' }); // update
+        testIdSet.delete('4');
+
+        testIdSet.resume();
+
+        expect(createResults).toEqual([]);
+        expect(updateResults).toEqual([]);
+        expect(deleteResults).toEqual([]);
+      });
+
+      it('should only publish the latest update of a value (update, delete, add)', () => {
+        testIdSet.pause();
+
+        testIdSet.add({ id: '2' }); // update
+        testIdSet.delete('2');
+        testIdSet.add({ id: '2' }); // recreate
+
+        testIdSet.resume();
+
+        expect(createResults).toEqual([]);
+        expect(updateResults).toEqual(['2']);
+        expect(deleteResults).toEqual([]);
+      });
+
+      it('should publish all updates', () => {
+        testIdSet.pause();
+
+        testIdSet.delete('1');
+        testIdSet.delete('2');
+        testIdSet.add({ id: '4' }); // create
+        testIdSet.add({ id: '5' }); // create
+        testIdSet.add({ id: '3' }); // update
+
+        testIdSet.resume();
+
+        expect(createResults).toEqual(['4', '5']);
+        expect(updateResults).toEqual(['3']);
+        expect(deleteResults).toEqual(['1', '2']);
       });
     });
   });
