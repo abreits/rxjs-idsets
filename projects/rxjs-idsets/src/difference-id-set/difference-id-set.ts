@@ -1,14 +1,14 @@
 import { Observable, Subscription, merge } from 'rxjs';
 
-import { ReadonlyIdSet } from '../public-api';
+import { BaseIdSet } from '../public-api';
 import { IdObject } from '../types';
 import { OneOrMore, oneOrMoreForEach, oneOrMoreToIterable } from '../utility/one-or-more';
 
 /**
  * IdSet that contains all values of the difference between the source set and the other IdSets passed in the constructor
  */
-export class DifferenceIdSet<IdValue extends IdObject<Id>, Id = string> extends ReadonlyIdSet<IdValue, Id> {
-  public readonly otherSets: Iterable<ReadonlyIdSet<IdValue, Id>>;
+export class DifferenceIdSet<IdValue extends IdObject<Id>, Id = string> extends BaseIdSet<IdValue, Id> {
+  public readonly otherSets: Iterable<BaseIdSet<IdValue, Id>>;
 
   private addSubscriber: Subscription;
   private deleteSubscriber: Subscription;
@@ -18,8 +18,8 @@ export class DifferenceIdSet<IdValue extends IdObject<Id>, Id = string> extends 
   private subtractionsCompleted = false;
 
   constructor(
-    public readonly sourceSet: ReadonlyIdSet<IdValue, Id>,
-    otherSets: OneOrMore<ReadonlyIdSet<IdValue, Id>>
+    public readonly sourceSet: BaseIdSet<IdValue, Id>,
+    otherSets: OneOrMore<BaseIdSet<IdValue, Id>>
   ) {
     super();
 

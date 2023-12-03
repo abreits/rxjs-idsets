@@ -1,14 +1,14 @@
 import { Observable, Subscription, merge } from 'rxjs';
 
-import { ReadonlyIdSet } from '../public-api';
+import { BaseIdSet } from '../public-api';
 import { IdObject } from '../types';
 
-export class UnionIdSet<IdValue extends IdObject<Id>, Id = string> extends ReadonlyIdSet<IdValue, Id> {
+export class UnionIdSet<IdValue extends IdObject<Id>, Id = string> extends BaseIdSet<IdValue, Id> {
   private addSubscriber: Subscription;
   private deleteSubscriber: Subscription;
 
   constructor(
-    public readonly sourceSets: Iterable<ReadonlyIdSet<IdValue, Id>>
+    public readonly sourceSets: Iterable<BaseIdSet<IdValue, Id>>
   ) {
     super();
 

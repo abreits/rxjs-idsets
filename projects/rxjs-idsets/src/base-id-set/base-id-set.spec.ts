@@ -1,5 +1,5 @@
 import { DeltaValue, IdObject } from '../types';
-import { ReadonlyIdSet } from './readonly-id-set';
+import { BaseIdSet } from './base-id-set';
 import { IdSet } from '../public-api';
 import { processDelta } from '../utility/process-delta';
 
@@ -10,25 +10,25 @@ const testSet = [{ id: '1' }, { id: '2' }, { id: '3' }];
 const testSetEntries = [['1', { id: '1' }], ['2', { id: '2' }], ['3', { id: '3' }]];
 const testSetKeys = ['1', '2', '3'];
 
-describe('ReadonlyIdSet', () => {
+describe('BaseIdSet', () => {
   describe('constructor', () => {
     it('should create an empty set', () => {
-      const testObject = new ReadonlyIdSet();
+      const testObject = new BaseIdSet();
       expect(testObject).toBeDefined();
     });
 
     it('should create a prefilled set', () => {
-      const testObject = new ReadonlyIdSet(testSet);
+      const testObject = new BaseIdSet(testSet);
       expect(testObject).toBeDefined();
     });
 
     it('should use the original values if cloneValues is false or undefined', () => {
-      const testObject = new ReadonlyIdSet([value1, value2]);
+      const testObject = new BaseIdSet([value1, value2]);
       expect(testObject.get(value1.id)).toBe(value1);
     });
 
     it('should clone the values if cloneValues is true', () => {
-      const testObject = new ReadonlyIdSet([value1, value2], true);
+      const testObject = new BaseIdSet([value1, value2], true);
       expect(testObject.get(value1.id)).not.toBe(value1);
       expect(testObject.get(value1.id)).toEqual(value1);
     });
@@ -36,13 +36,13 @@ describe('ReadonlyIdSet', () => {
 
   describe('observed', () => {
     it('should return false if no subscriptions are active', () => {
-      const testObject = new ReadonlyIdSet();
+      const testObject = new BaseIdSet();
 
       expect(testObject.observed).toBeFalse();
     });
 
     it('should return true if at least one subscription is active', () => {
-      const testObject = new ReadonlyIdSet();
+      const testObject = new BaseIdSet();
 
       // test all possible subscriptions
 
@@ -78,7 +78,7 @@ describe('ReadonlyIdSet', () => {
 
   describe('all$', () => {
     it('should return the current values in the set and not make the set observed', () => {
-      const testObject = new ReadonlyIdSet(testSet);
+      const testObject = new BaseIdSet(testSet);
       const received: IdObject[] = [];
 
       testObject.all$.subscribe(value => received.push(value));
@@ -89,7 +89,7 @@ describe('ReadonlyIdSet', () => {
 
   describe('delete$', () => {
     it('should return an observable and make the set observed', () => {
-      const testObject = new ReadonlyIdSet(testSet);
+      const testObject = new BaseIdSet(testSet);
 
       const subscription = testObject.delete$.subscribe();
       expect(subscription.closed).toBeFalse();
@@ -102,7 +102,7 @@ describe('ReadonlyIdSet', () => {
 
   describe('create$', () => {
     it('should return an observable and make the set observed', () => {
-      const testObject = new ReadonlyIdSet(testSet);
+      const testObject = new BaseIdSet(testSet);
 
       const subscription = testObject.create$.subscribe();
       expect(subscription.closed).toBeFalse();
@@ -115,7 +115,7 @@ describe('ReadonlyIdSet', () => {
 
   describe('update$', () => {
     it('should return an observable and make the set observed', () => {
-      const testObject = new ReadonlyIdSet(testSet);
+      const testObject = new BaseIdSet(testSet);
 
       const subscription = testObject.update$.subscribe();
       expect(subscription.closed).toBeFalse();
@@ -128,7 +128,7 @@ describe('ReadonlyIdSet', () => {
 
   describe('add$', () => {
     it('should return an observable and make the set observed', () => {
-      const testObject = new ReadonlyIdSet(testSet);
+      const testObject = new BaseIdSet(testSet);
 
       const subscription = testObject.add$.subscribe();
       expect(subscription.closed).toBeFalse();
@@ -141,7 +141,7 @@ describe('ReadonlyIdSet', () => {
 
   describe('allAdd$', () => {
     it('should return all existing values in an observable and make the set observed', () => {
-      const testObject = new ReadonlyIdSet(testSet);
+      const testObject = new BaseIdSet(testSet);
       const results: IdObject[] = [];
 
       const subscription = testObject.allAdd$.subscribe(value => results.push(value));
@@ -156,7 +156,7 @@ describe('ReadonlyIdSet', () => {
 
   describe('delta$', () => {
     it('should return a DeltaValue observable and make the set observed', () => {
-      const testObject = new ReadonlyIdSet(testSet);
+      const testObject = new BaseIdSet(testSet);
 
       const subscription = testObject.delta$.subscribe();
       expect(subscription.closed).toBeFalse();
@@ -202,7 +202,7 @@ describe('ReadonlyIdSet', () => {
 
   describe('allDelta$', () => {
     it('should return all existing values as DeltaValues in an observable and make the set observed', () => {
-      const testObject = new ReadonlyIdSet(testSet);
+      const testObject = new BaseIdSet(testSet);
       const results: IdObject[] = [];
 
       const subscription = testObject.allDelta$.subscribe(delta => processDelta(delta, {
@@ -219,7 +219,7 @@ describe('ReadonlyIdSet', () => {
 
   describe('complete', () => {
     it('should complete all existing subscriptions', () => {
-      const testObject = new ReadonlyIdSet(testSet);
+      const testObject = new BaseIdSet(testSet);
       // activate all subscriptions
       const addSubscription = testObject.add$.subscribe();
       const allAddSubscription = testObject.allAdd$.subscribe();
@@ -249,54 +249,67 @@ describe('ReadonlyIdSet', () => {
     });
   });
 
-
   describe('implement readonly set methods and properties', () => {
     it('should implement size', () => {
-      const testObject = new ReadonlyIdSet(testSet);
+      const testObject = new BaseIdSet(testSet);
       expect(testObject.size).toBe(testSet.length);
     });
 
     it('should implement entries()', () => {
-      const testObject = new ReadonlyIdSet(testSet);
+      const testObject = new BaseIdSet(testSet);
       const entries = [...testObject.entries()] as any;
       expect(entries).toEqual(testSetEntries);
     });
 
     it('should implement forEach()', () => {
-      const testObject = new ReadonlyIdSet(testSet);
+      const testObject = new BaseIdSet(testSet);
       const results: IdObject[] = [];
       testObject.forEach(value => results.push(value));
       expect(results).toEqual(testSet);
     });
 
     it('should implement get()', () => {
-      const testObject = new ReadonlyIdSet(testSet);
+      const testObject = new BaseIdSet(testSet);
       expect(testObject.get('1')).toEqual({ id: '1' });
       expect(testObject.get('0')).toEqual(undefined);
     });
 
     it('should implement has()', () => {
-      const testObject = new ReadonlyIdSet(testSet);
+      const testObject = new BaseIdSet(testSet);
       expect(testObject.has('1')).toBeTrue();
       expect(testObject.has('0')).toBeFalse();
     });
 
     it('should implement keys()', () => {
-      const testObject = new ReadonlyIdSet(testSet);
+      const testObject = new BaseIdSet(testSet);
       const keys = [...testObject.keys()];
       expect(keys).toEqual(testSetKeys);
     });
 
     it('should implement values()', () => {
-      const testObject = new ReadonlyIdSet(testSet);
+      const testObject = new BaseIdSet(testSet);
       const values = [...testObject.values()];
       expect(values).toEqual(testSet);
     });
 
     it('should implement [Symbol.iterator]()', () => {
-      const testObject = new ReadonlyIdSet(testSet);
+      const testObject = new BaseIdSet(testSet);
       const content = [...testObject] as any;
       expect(content).toEqual(testSet);
+    });
+  });
+
+  describe('pause and resume', () => {
+    describe('pause()', () => {
+      it('should no longer send updates', () => {
+        // TODO
+      });
+    });
+
+    describe('resume()', () => {
+      it('should resume sending updates', () => {
+        // TODO
+      });
     });
   });
 });

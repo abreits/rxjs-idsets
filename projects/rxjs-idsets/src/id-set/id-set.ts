@@ -1,12 +1,12 @@
 import { IdObject } from '../types';
-import { ReadonlyIdSet } from '../readonly-id-set/readonly-id-set';
+import { BaseIdSet } from '../base-id-set/base-id-set';
 import { OneOrMore, oneOrMoreForEach } from '../utility/one-or-more';
 
 
 /**
  * A Set containing IdObjects that publishes changes through Observables.
  */
-export class IdSet<IdValue extends IdObject<Id>, Id = string> extends ReadonlyIdSet<IdValue, Id> {
+export class IdSet<IdValue extends IdObject<Id>, Id = string> extends BaseIdSet<IdValue, Id> {
 
   /**
    * Adds or modifies one or more values and returns the resulting set.

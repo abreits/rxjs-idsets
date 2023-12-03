@@ -1,17 +1,17 @@
 import { Observable, Subscription, merge } from 'rxjs';
 
-import { ReadonlyIdSet } from '../public-api';
+import { BaseIdSet } from '../public-api';
 import { IdObject } from '../types';
 
 /**
  * IdSet that contains all values of the intersection of the IdSets passed in the constructor
  */
-export class IntersectionIdSet<IdValue extends IdObject<Id>, Id = string> extends ReadonlyIdSet<IdValue, Id> {
+export class IntersectionIdSet<IdValue extends IdObject<Id>, Id = string> extends BaseIdSet<IdValue, Id> {
   private addSubscriber: Subscription;
   private deleteSubscriber: Subscription;
 
   constructor(
-    public readonly intersectionSets: Iterable<ReadonlyIdSet<IdValue, Id>>
+    public readonly intersectionSets: Iterable<BaseIdSet<IdValue, Id>>
   ) {
     super();
 
