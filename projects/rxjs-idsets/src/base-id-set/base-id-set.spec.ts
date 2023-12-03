@@ -415,7 +415,7 @@ describe('BaseIdSet', () => {
         expect(deltaResultsCount).toBe(1);
       });
 
-      it('should combine multiple nested pause() resume() pairs and only published after the last resume()', () => {
+      it('should combine multiple nested pause() resume() pairs and only publish after the last resume()', () => {
         testIdSet.pause();
 
         testIdSet.delete('1');

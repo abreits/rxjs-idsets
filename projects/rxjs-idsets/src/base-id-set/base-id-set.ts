@@ -113,7 +113,7 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
    * Pauses sending each update individually. 
    * 
    * When performing lots of overlapping add and/or delete actions on the set
-   * and you only want to publish the results of these actions,you can use this to method to do so. 
+   * and you only want to publish the results of these actions, you can use this to method to do so. 
    * 
    * Use `resume()` to resume sending updates.
    */
