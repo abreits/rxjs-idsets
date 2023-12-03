@@ -1,12 +1,14 @@
 import { map } from 'rxjs';
-import { IdObject, DeltaValue } from '../types';
+import { IdObject, DeltaValue, MapDeltaFunction } from '../types';
 import { oneOrMoreMap } from '../utility/one-or-more';
 
-type MapDeltaFunction<ResultType, IdValue extends IdObject<Id>, Id = string> = (idValue: IdValue) => ResultType;
 /**
- * RxJS operator that processes all create, update and delete values of the delta with the same function and passes the resulting delta on
+ * RxJS operator that processes all create, update and delete values of the delta 
+ * with the same function and passes the resulting delta on.
  */
-export function mapDelta<ResultType, IdValue extends IdObject<Id>, Id = string>(processFunction: MapDeltaFunction<ResultType, IdValue, Id>) {
+export function mapDelta<ResultType, IdValue extends IdObject<Id>, Id = string>(
+  processFunction: MapDeltaFunction<ResultType, IdValue, Id>
+) {
   return map((delta: DeltaValue<IdValue>) => {
     const result: DeltaValue<ResultType> = {};
     if (delta.create) {

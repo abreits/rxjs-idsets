@@ -13,7 +13,9 @@ export type DeltaValue<T = IdObject> = {
 
 export type DeltaProperty = keyof DeltaValue;
 
-export type DeltaFunction<IdValue extends IdObject<Id>, Id = string> = (idValue: IdValue) => void;
+export type DeltaFunction<IdValue extends IdObject<Id>, Id = string> = (
+  idValue: IdValue
+) => void;
 
 export type DeltaProcessor<IdValue extends IdObject<Id>, Id = string> = {
   create?: DeltaFunction<IdValue, Id>,
@@ -21,7 +23,13 @@ export type DeltaProcessor<IdValue extends IdObject<Id>, Id = string> = {
   delete?: DeltaFunction<IdValue, Id>,
 }
 
-export type MergeMapDeltaFunction<ResultType, IdValue extends IdObject<Id>, Id = string> = (idValue: IdValue) => Observable<ResultType>;
+export type MapDeltaFunction<ResultType, IdValue extends IdObject<Id>, Id = string> = (
+  idValue: IdValue
+) => ResultType;
+
+export type MergeMapDeltaFunction<ResultType, IdValue extends IdObject<Id>, Id = string> = (
+  idValue: IdValue
+) => Observable<ResultType>;
 
 export type MergeMapDeltaProcessor<ResultType, IdValue extends IdObject<Id>, Id = string> = {
   create?: MergeMapDeltaFunction<ResultType, IdValue, Id>,

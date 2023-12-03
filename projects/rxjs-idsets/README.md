@@ -37,7 +37,7 @@ Apart from Typescripts `tslib` there are no external dependencies.
 
 This library provides a number of `IdSet` classes, which are _observable_ extensions of the javascript `Set` _object_.
 
-The `Set` _values_ they work on are objects that _implement_ the `IdObject` _interface_:
+The _values_ in an `IdSet` are objects that _implement_ the `IdObject` _interface_:
 
 ``` typescript
 interface IdObject<Id = string> {
@@ -45,28 +45,33 @@ interface IdObject<Id = string> {
 }
 ```
 
-The uniqueness of a value in an IdSet is defined by the value of its id. If you add an element to an IdSet with an id that already exists in the set, the existing value will be updated to the new value and the change to the IdSet will be published through the appropriate Observables.
+The uniqueness of a value in an IdSet is defined by the value of its id. It functions as a javascript `Map` where the _key_ is the `id` property of the _value_ (under water it actually is).
+
+If you add an element to an IdSet with an id that already exists in the set, the existing value will be updated to the new value and the change to the IdSet will be published through the appropriate Observables.
 
 This library provides the following `IdSet` classes:
 - **`IdSet`** is the basic _observable_ `Set`
-- **`ReadOnlyIdSet`** is an _observable_ `ReadonlySet` version of the `IdSet`
-- **`UnionIdSet`** is an _observable_ `ReadonlySet` _subclass_ that provides the mathematical union
-  of multiple _source_ `IdSet`'s and keeps it automatically up to date if the contents of the
-  _sources_ change.
-- **`IntersectionIdSet`** is an _observable_ `ReadonlySet` _subclass_ that provides the
-  mathematical intersection of multiple _source_ `IdSet`'s and keeps it automatically up to date if the contents of the _sources_ change.
-- **`SubtractionIdSet`** is an _observable_ `ReadonlySet` _subclass_ that provides the mathematical
-  subtraction of multiple _subtract_ `IdSet`'s from the _source_ `IdSet` and keeps it automatically up to date if the contents of the _source_ or the _subtracts_ change.
-- **`ContainerIdSet`** places its _values_ in one or more _sets_, it can change the
-  _sets_ a value is member of and if a _value_ is no longer member of a _category_ it is
-  deleted from the `ContainerIdSet`. 
+- **`UnionIdSet`** is a computed `IdSet` that perfoms the union set operation.
+  It computes and automatically updates the union of multiple _source_ `IdSet`'s.
+- **`IntersectionIdSet`** is a computed `IdSet` that performs the intersection set operation.
+  It computes and automatically updates the intersection of multiple _source_ `IdSet`'s.
+- **`SubtractionIdSet`** is a computed `IdSet` that performs the subtract set operation.
+  It computes and automatically updates the subtraction of multiple _subtract_ `IdSet`'s from the _source_ `IdSet`.
+- **`ContainerIdSet`** is an `IdSet` where you add _values_ to one or more _containers_. 
+  You can add, remove and update _containers_ and _values_ independant of one another and be notified of changes.
+  It is a powerful concept, see the [`ContainerIdSet` section](#containeridset) for more details. 
+- **`ReadOnlyIdSet`** is a readonly version of the `IdSet`. It can be used as base class to create your own computed `IdSet`'s.
 
 Changes to the above classes can be _observed_ with the following [RxJS](https://rxjs.dev/) Observable properties:
 - **`all$`** returns all _values_ that are currently in the set.
-- **`add$`** returns all _values_ that will be added (both _created_ and _updated_) to the set.
 - **`create$`** returns only the _**new** values_, values with an **id** that **does not already exist** in the set.
 - **`update$`** returns only the _**changed** values_, values with an id that does exist in the set and is not a reference to to the existing value (needs to be `newvalue !== existingvalue`).
 - **`delete$`** returns the _values_ that will be deleted from the set.
+
+For convenience the following Observable properties are also provided:
+- **`add$`** returns all _values_ that will be added (both _created_ and _updated_) to the set.
+- **`allAdd$`** returns all _values_ currently in the set and then switches to `add$`.
+- **`delta$`** returns a structure that can contain one or more _create_'d, _update_'d and/or _delete_'d _value_'s.
 
 This library was created as a more 'pure' Observable version of my [rxjs-supersets](https://github.com/abreits/rxjs-supersets) library.
 
