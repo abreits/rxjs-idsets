@@ -41,18 +41,28 @@ export class IdSet<IdValue extends IdObject<Id>, Id = string> extends BaseIdSet<
     const newEntriesSet = new Set<Id>();
 
     // update additions and modifications
+    this.pause();
     oneOrMoreForEach(values, value => {
       value = cloneValues ? structuredClone(value) : value;
       newEntriesSet.add(value.id);
-      this.add(value);
+      this.addValue(value);
     });
     // update deletions
     for (const oldId of this.idMap.keys()) {
       if (!newEntriesSet.has(oldId)) {
-        this.delete(oldId);
+        this.deleteId(oldId);
       }
     }
+    this.resume();
     return this;
+  }
+
+  override pause() {
+    super.pause();
+  }
+
+  override resume() {
+    super.resume();
   }
 
   /**

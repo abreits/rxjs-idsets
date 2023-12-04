@@ -117,7 +117,7 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
    * 
    * Use `resume()` to resume sending updates.
    */
-  pause() {
+  protected pause() {
     this.pauseCount++;
   }
 
@@ -126,7 +126,7 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
    * 
    * Resumes sending each update individually after that.
    */
-  resume() {
+  protected resume() {
     this.pauseCount--;
     if (this.pauseCount === 0) {
       // publish intermittent updates
@@ -232,6 +232,9 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
    * For use in child classes
    */
   protected clear() {
+    if (this.idMap.size > 0) {
+      this.deltaSubject$.next({ delete: this.idMap.values() });
+    }
     if (this.deleteSubject$.observed) {
       const oldIdMap = this.idMap;
       this.idMap = new Map();

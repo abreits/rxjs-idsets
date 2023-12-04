@@ -18,7 +18,7 @@ describe('ContainerIdSet', () => {
   });
 
   /**
-   * The InnerIdSet can only be tested indirectly in an ContainerIdSet
+   * The InnerIdSet can best be properly tested indirectly in a ContainerIdSet
    */
   describe('InnerIdSet', () => {
     describe('Active inside ContainerIdSet', () => {
