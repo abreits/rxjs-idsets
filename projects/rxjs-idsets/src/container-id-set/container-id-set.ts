@@ -13,7 +13,7 @@ export class ContainerIdSet<IdValue extends IdObject<Id>, Id = string, SetId = s
   /**
    * A Map containing all SetIds with their corresponding IdSet.
    */
-  get sets(): ReadonlyMap<SetId, IdSet<IdValue, Id>> {
+  get sets(): ReadonlyMap<SetId, IdSet<Readonly<IdValue>, Id>> {
     return this.innerSets;
   }
 
@@ -119,7 +119,7 @@ export class ContainerIdSet<IdValue extends IdObject<Id>, Id = string, SetId = s
    * Export the contents of the `ContainerIdSet` in a format that the `constructor` and `replace`
    * method understand.
    */
-  *export(): IterableIterator<[IdValue, Iterable<SetId>]> {
+  *export(): IterableIterator<[Readonly<IdValue>, Iterable<SetId>]> {
     for (const [id, value] of this.idMap) {
       const categories = this.idInSet.get(id) as Iterable<SetId>;
       yield [value, categories];

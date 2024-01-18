@@ -27,56 +27,56 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
   /**
    * Observable returning all values currently present
    */
-  get all$(): Observable<IdValue> {
-    return from(this.idMap.values());
+  get all$(): Observable<Readonly<IdValue>> {
+    return from(this.idMap.values()) as Observable<IdValue>;
   }
 
   /**
    * Observable returning values deleted later
    */
-  get delete$(): Observable<IdValue> {
+  get delete$(): Observable<Readonly<IdValue>> {
     return this.deleteSubject$.asObservable();
   }
 
   /**
    * Observable returning values created later
    */
-  get create$(): Observable<IdValue> {
+  get create$(): Observable<Readonly<IdValue>> {
     return this.createSubject$.asObservable();
   }
 
   /**
    * Observable returning values updated later
    */
-  get update$(): Observable<IdValue> {
+  get update$(): Observable<Readonly<IdValue>> {
     return this.updateSubject$.asObservable();
   }
 
   /**
    * Observable returning values added later (both created and updated)
    */
-  get add$(): Observable<IdValue> {
+  get add$(): Observable<Readonly<IdValue>> {
     return merge(this.createSubject$, this.updateSubject$);
   }
 
   /**
    * Observable returning all values currently present and values added later
    */
-  get allAdd$(): Observable<IdValue> {
-    return concat(this.all$, this.add$);
+  get allAdd$(): Observable<Readonly<IdValue>> {
+    return concat(this.all$, this.add$) as Observable<IdValue>;
   }
 
   /**
    * Return future changes in a single Observable (created, updated and deleted)
    */
-  get delta$(): Observable<DeltaValue<IdValue>> {
+  get delta$(): Observable<Readonly<DeltaValue<IdValue>>> {
     return this.deltaSubject$.asObservable();
   }
 
   /**
    * Return all values current present and future changes in a single Observable (created, updated and deleted)
    */
-  get allDelta$(): Observable<DeltaValue<IdValue>> {
+  get allDelta$(): Observable<Readonly<DeltaValue<IdValue>>> {
     return concat(
       of({ create: this.idMap.values() }),
       this.delta$);
@@ -135,9 +135,9 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
       this.createDelta.forEach(value => this.createSubject$.next(value));
       if (this.createDelta.size > 0 || this.updateDelta.size > 0 || this.deleteDelta.size > 0) {
         this.deltaSubject$.next({
-          create: this.createDelta.values(),
-          update: this.updateDelta.values(),
-          delete: this.deleteDelta.values()
+          create: [...this.createDelta.values()],
+          update: [...this.updateDelta.values()],
+          delete: [...this.deleteDelta.values()]
         });
       }
       // initialize delta's so they are ready for a new pause()
@@ -253,7 +253,7 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
     return this.idMap.size;
   }
 
-  values() {
+  values(): IterableIterator<Readonly<IdValue>> {
     return this.idMap.values();
   }
 
@@ -261,7 +261,7 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
     this.idMap.forEach(fn, thisArg);
   }
 
-  get(key: Id) {
+  get(key: Id): Readonly<IdValue> | undefined {
     return this.idMap.get(key);
   }
 
@@ -273,11 +273,11 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
     return this.idMap.keys();
   }
 
-  entries() {
+  entries(): IterableIterator<[Id, Readonly<IdValue>]> {
     return this.idMap.entries();
   }
 
-  [Symbol.iterator]() {
+  [Symbol.iterator](): IterableIterator<Readonly<IdValue>>  {
     return this.idMap.values();
   }
 }

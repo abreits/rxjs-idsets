@@ -124,7 +124,7 @@ exampleSet.replace([value1, value2update, value3]);
 // delete all content from the set
 exampleSet.clear(); 
 // exampleset now contains []
-// the delete$ observable publishes the delete values
+// the exampleset.delete$ observable publishes value1, value2update and value3
 
 // close all subscritions to the set
 exampleSet.complete();
@@ -296,10 +296,19 @@ The methods and properties that define the basic functionality of the `IdSet` cl
 - Useful observable when you need to monitor all additions from the beginnig of the Set, 
 but you start when the Set is already populated with values.
 
+#### `delta$(): Observable<Readonly<DeltaValue<IdValue>>>`
+- observable that returns a `DeltaValue` structure. A `DeltaValue` structure combines one or more `create`, `update` and `delete` values.
+
+#### `allDelta$(): Observable<Readonly<DeltaValue<IdValue>>>`
+- observable that returns a `DeltaValue` structure. A `DeltaValue` structure combines one or more `create`, `update` and `delete` values. The first result contains all current values of the set in the `create` property of the `DeltaValue`.
+
+#### `observed`
+- `true` when the BaseIdSet is observed (subscribed to), `false` otherwise.
+
 #### `complete()`
 - Completes all Observables in the set, modifications to the set will no longer be propageted through these observables. Only the `all$` Observable will still function.
 
-### Basic `Set` properties and methods
+### Standard `Set` properties and methods
 The methods and properties that are more or less identical to the default `Set` classes are given below. No description apart from the type annotation is given.
 
 #### `size: number`

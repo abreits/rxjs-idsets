@@ -1,8 +1,11 @@
+import { fakeAsync, tick } from '@angular/core/testing';
+import { delay } from 'rxjs';
+
 import { DeltaValue, IdObject } from '../types';
 import { BaseIdSet } from './base-id-set';
 import { IdSet } from '../public-api';
 import { processDelta } from '../utility/process-delta';
-import { oneOrMoreForEach } from '../utility/one-or-more';
+import { oneOrMoreForEach, oneOrMoreMap } from '../utility/one-or-more';
 
 const value1 = { id: '1' };
 const value2 = { id: '2' };
@@ -362,6 +365,34 @@ describe('BaseIdSet', () => {
         expect(deltaResultsCount).toBe(1);
       });
 
+      it('should send paused updates after resume async', fakeAsync(() => {
+        const asyncResults: string[] = [];
+
+        testIdSet.delta$.pipe(delay(1)).subscribe(delta => {
+          console.log('delta:', delta);
+          if (delta.create) {
+            oneOrMoreForEach(delta.create, value => asyncResults.push('create ' + value.id));
+          }
+          if (delta.update) {
+            oneOrMoreForEach(delta.update, value => asyncResults.push('update ' + value.id));
+          }
+          if (delta.delete) {
+            oneOrMoreForEach(delta.delete, value => asyncResults.push('delete ' + value.id));
+          }
+        });
+
+        testIdSet.pause();
+
+        testIdSet.add({ id: '4' }); // create
+        testIdSet.add({ id: '2' }); // update
+        testIdSet.delete('1');
+
+        testIdSet.resume();
+
+        tick(1);
+        expect(asyncResults).toEqual(['create 4', 'update 2', 'delete 1']);
+      }));
+
       it('should only publish the -delete- update of a value (delete, add, delete) sequence', () => {
         testIdSet.pause();
 
@@ -549,5 +580,33 @@ describe('BaseIdSet', () => {
         expect(deleteResults).toEqual(['1', '2']);
       });
     });
+  });
+});
+
+class TestClass {
+  constructor(
+    public id: string,
+    public property: string
+  ) { }
+
+  public method() {
+    return this.id + this.property;
+  }
+}
+
+describe('Test readonly results', () => {
+  it('should be able to call methods of Readonly<TestClass> observable results', () => {
+    const testItem = new TestClass('id', 'property');
+    const testIdSet = new BaseIdSet([testItem]);
+
+    let resultItem!: TestClass;
+    testIdSet.all$.subscribe(item => {
+      resultItem = item;
+    });
+
+    expect(resultItem instanceof TestClass);
+    expect(resultItem.method()).toEqual('idproperty');
+
+    testIdSet.complete();
   });
 });

@@ -1,6 +1,6 @@
 {
   "name": "rxjs-idsets",
-  "version": "1.1.0",
+  "version": "3.0.0",
   "peerDependencies": {
     "rxjs": ">6.0.0"
   },
