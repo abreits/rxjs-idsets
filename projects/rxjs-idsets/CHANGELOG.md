@@ -2,8 +2,9 @@
 
 ## 3.0.0
 - All IdObject values returned from the IdSet are now readonly to further promote immutability
+- Fixed resume() bug for async resumes
 - Updated README
-- Fixed resume bug for async resumes
+- updated @angular build environment to 17.1.0
 
 ## 2.0.0
   and help to detect modifications of existing set elements
