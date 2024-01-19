@@ -21,9 +21,9 @@
   "devDependencies": {
     "@angular-devkit/build-angular": "^17.1.0",
     "@angular/cli": "^17.1.0",
-    "@angular/compiler": "^17.0.3",
-    "@angular/compiler-cli": "^17.0.3",
-    "@angular/core": "^17.0.3",
+    "@angular/compiler": "^17.1.0",
+    "@angular/compiler-cli": "^17.1.0",
+    "@angular/core": "^17.1.0",
     "@types/jasmine": "~3.10.0",
     "@types/node": "^12.11.1",
     "@typescript-eslint/eslint-plugin": "^5.17.0",
