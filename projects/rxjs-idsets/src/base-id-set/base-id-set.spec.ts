@@ -5,7 +5,7 @@ import { DeltaValue, IdObject } from '../types';
 import { BaseIdSet } from './base-id-set';
 import { IdSet } from '../public-api';
 import { processDelta } from '../utility/process-delta';
-import { oneOrMoreForEach, oneOrMoreMap } from '../utility/one-or-more';
+import { oneOrMoreForEach } from '../utility/one-or-more';
 
 const value1 = { id: '1' };
 const value2 = { id: '2' };
