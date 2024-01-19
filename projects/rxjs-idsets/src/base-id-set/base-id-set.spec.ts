@@ -369,7 +369,6 @@ describe('BaseIdSet', () => {
         const asyncResults: string[] = [];
 
         testIdSet.delta$.pipe(delay(1)).subscribe(delta => {
-          console.log('delta:', delta);
           if (delta.create) {
             oneOrMoreForEach(delta.create, value => asyncResults.push('create ' + value.id));
           }
@@ -602,6 +601,7 @@ describe('Test readonly results', () => {
     let resultItem!: TestClass;
     testIdSet.all$.subscribe(item => {
       resultItem = item;
+      expect(item.method()).toEqual('idproperty');
     });
 
     expect(resultItem instanceof TestClass);
