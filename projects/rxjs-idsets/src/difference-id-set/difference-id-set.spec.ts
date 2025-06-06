@@ -144,5 +144,12 @@ describe('DifferenceIdSet', () => {
       expect(testObject.size).toBe(2);
       expect(created).toEqual([value3]);
     });
+
+    it('should remove an existing IdSet from subtraction sets and ignore unsubtracted sets', () => {
+      testObject.removeSubtract([set3, set4]);
+
+      expect(testObject.size).toBe(2);
+      expect(created).toEqual([value3]);
+    });
   });
 });

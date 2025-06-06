@@ -71,24 +71,27 @@ export class DifferenceIdSet<
   public removeSubtract(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
     const additions: Observable<IdValue>[] = [];
     const deletions: Observable<IdValue>[] = [];
-    const removedSets = new Set(
+    const tryRemoveSets = new Set(
       idSets instanceof BaseIdSet ? [idSets] : idSets
     );
     const remainingSets = new Set<BaseIdSet<IdValue, Id>>();
+    const removedSets: BaseIdSet<IdValue, Id>[] = [];
     // add remaining subtract set observables
     oneOrMoreForEach(this.subtractSets, (subtractSet) => {
-      if (!removedSets.has(subtractSet)) {
+      if (tryRemoveSets.has(subtractSet)) {
+        removedSets.push(subtractSet);
+      } else {
         additions.push(subtractSet.add$);
         deletions.push(subtractSet.delete$);
         remainingSets.add(subtractSet);
       }
     });
     this.subtractSets = remainingSets;
+    this.setSubtractSubscriptions(additions, deletions);
     // proces items of removed subtract sets
     removedSets.forEach((removedSet) => {
       removedSet.forEach((idValue) => this.processOtherDelete(idValue));
     });
-    this.setSubtractSubscriptions(additions, deletions);
   }
 
   override complete() {
