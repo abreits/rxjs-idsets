@@ -8,8 +8,7 @@ export function oneOrMoreForEach<T>(arg1: OneOrMore<T>, fn: (v: T) => void) {
       fn(value);
     }
   } else {
-    const value = arg1 as T;
-    fn(value);
+    fn(arg1);
   }
 }
 
@@ -22,8 +21,7 @@ export function oneOrMoreMap<T, R>(arg1: OneOrMore<T>, fn: (v: T) => R): R[] {
     }
     return results;
   } else {
-    const value = arg1 as T;
-    return [fn(value)];
+    return [fn(arg1)];
   }
 
 }

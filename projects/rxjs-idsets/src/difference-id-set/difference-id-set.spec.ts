@@ -10,11 +10,13 @@ const value1update = { id: '1', value: 'value1' };
 const idSet123 = [value1, value2, value3];
 const idSet25 = [value2, value5];
 const idSet3 = [value3];
+const idSet14 = [value1, value4];
 
-type TestValue = { id: string, value: string };
+type TestValue = { id: string; value: string };
 let set1: IdSet<TestValue>;
 let set2: IdSet<TestValue>;
 let set3: IdSet<TestValue>;
+let set4: IdSet<TestValue>;
 let testObject: DifferenceIdSet<TestValue>;
 
 let created: TestValue[];
@@ -26,14 +28,15 @@ describe('DifferenceIdSet', () => {
     set1 = new IdSet(idSet123);
     set2 = new IdSet(idSet25);
     set3 = new IdSet(idSet3);
+    set4 = new IdSet(idSet14);
     testObject = new DifferenceIdSet(set1, [set2, set3]);
 
     created = [];
     updated = [];
     deleted = [];
-    testObject.create$.subscribe(value => created.push(value));
-    testObject.update$.subscribe(value => updated.push(value));
-    testObject.delete$.subscribe(value => deleted.push(value));
+    testObject.create$.subscribe((value) => created.push(value));
+    testObject.update$.subscribe((value) => updated.push(value));
+    testObject.delete$.subscribe((value) => deleted.push(value));
   });
 
   afterEach(() => {
@@ -122,6 +125,24 @@ describe('DifferenceIdSet', () => {
         expect(testObject.size).toBe(1);
         expect(updated).toEqual([value1update]);
       });
+    });
+  });
+
+  describe('subtract', () => {
+    it('should add a new IdSet to subtraction sets', () => {
+      testObject.subtract(set4);
+
+      expect(testObject.size).toBe(0);
+      expect(deleted).toEqual([value1]);
+    });
+  });
+
+  describe('RemoveSubtract', () => {
+    it('should remove an existing IdSet from subtraction sets', () => {
+      testObject.removeSubtract(set3);
+
+      expect(testObject.size).toBe(2);
+      expect(created).toEqual([value3]);
     });
   });
 });
