@@ -437,6 +437,12 @@ other1.add(value1);
 #### `constructor(sourceSet: IdSet, otherSets: Iterable<BaseIdSet>)`
 - Define the source and other `IdSets` the `DifferenceIdSet` operates upon at construction.
 
+#### `subtract(idSets: OneOrMore<BaseIdSet<IdValue, Id>>)`
+- Add IdSets to subtract from the source IdSet and update the result
+
+#### `removeSubtract(idSets: OneOrMore<BaseIdSet<IdValue, Id>>)`
+- Remove IdSets from collection of sets to subtract from the source IdSet and update the result
+
 #### `readonly sourceSet: BaseIdSet`
 - The sourceSet the `DifferenceIdSet` operates upon
 

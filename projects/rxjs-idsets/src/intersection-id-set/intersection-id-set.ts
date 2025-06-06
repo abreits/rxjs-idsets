@@ -1,12 +1,16 @@
 import { Observable, Subscription, merge } from 'rxjs';
 
-import { BaseIdSet } from '../public-api';
+import { BaseIdSet, DifferenceIdSet, UnionIdSet } from '../public-api';
 import { IdObject } from '../types';
+import { OneOrMore } from '../utility/one-or-more';
 
 /**
  * IdSet that contains all values of the intersection of the IdSets passed in the constructor
  */
-export class IntersectionIdSet<IdValue extends IdObject<Id>, Id = string> extends BaseIdSet<IdValue, Id> {
+export class IntersectionIdSet<
+  IdValue extends IdObject<Id>,
+  Id = string
+> extends BaseIdSet<IdValue, Id> {
   private addSubscriber: Subscription;
   private deleteSubscriber: Subscription;
 
@@ -23,10 +27,12 @@ export class IntersectionIdSet<IdValue extends IdObject<Id>, Id = string> extend
       deletions.push(intersectionSet.delete$);
     }
 
-    this.addSubscriber = merge(...additions).subscribe(value => this.processAdd(value),);
+    this.addSubscriber = merge(...additions).subscribe((value) =>
+      this.processAdd(value)
+    );
     this.deleteSubscriber = merge(...deletions).subscribe({
-      next: value => this.processDelete(value),
-      complete: () => this.complete()
+      next: (value) => this.processDelete(value),
+      complete: () => this.complete(),
     });
   }
 
@@ -65,5 +71,33 @@ export class IntersectionIdSet<IdValue extends IdObject<Id>, Id = string> extend
       this.idMap.delete(id);
       this.deleteSubject$.next(currentValue);
     }
+  }
+
+  //chaining methods
+
+  /**
+   * Return a new DifferenceIdSet that subtracts the specified IdSets from this IdSet.
+   */
+  /* istanbul ignore next ** trivial */
+  subtract(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
+    return new DifferenceIdSet(this, idSets);
+  }
+  /**
+   * Return a new UnionIdSet that creates a union of this IdSet with the specified IdSets.
+   */
+  /* istanbul ignore next ** trivial */
+  union(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
+    return new UnionIdSet(
+      idSets instanceof BaseIdSet ? [idSets, this] : [...idSets, this]
+    );
+  }
+  /**
+   * Return a new IntersectionIdSet that creates an intersection of this IdSet with the specified IdSets.
+   */
+  /* istanbul ignore next ** trivial */
+  intersect(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
+    return new IntersectionIdSet(
+      idSets instanceof BaseIdSet ? [idSets, this] : [...idSets, this]
+    );
   }
 }

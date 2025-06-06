@@ -1,6 +1,6 @@
 import { Observable, Subscription, merge } from 'rxjs';
 
-import { BaseIdSet, processDelta } from '../public-api';
+import { BaseIdSet, IntersectionIdSet, processDelta, UnionIdSet } from '../public-api';
 import { IdObject } from '../types';
 import { OneOrMore, oneOrMoreForEach } from '../utility/one-or-more';
 
@@ -39,13 +39,13 @@ export class DifferenceIdSet<
         }
       },
     });
-    this.subtract(subtractSets);
+    this.addSubtractionIdSets(subtractSets);
   }
 
   /***
    * Add IdSets to subtract from the source IdSet and update the result
    */
-  public subtract(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
+  public addSubtractionIdSets(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
     const additions: Observable<IdValue>[] = [];
     const deletions: Observable<IdValue>[] = [];
     // add existing subtract set observables
@@ -62,13 +62,13 @@ export class DifferenceIdSet<
         this.subtractSets.add(extraSet);
       }
     });
-    this.setSubtractSubscriptions(additions, deletions);
+    this.setSubtractionSubscriptions(additions, deletions);
   }
 
   /***
    * Remove IdSets from collection of sets to subtract from the source IdSet and update the result
    */
-  public removeSubtract(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
+  public removeSubtractIdSets(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
     const additions: Observable<IdValue>[] = [];
     const deletions: Observable<IdValue>[] = [];
     const tryRemoveSets = new Set(
@@ -87,7 +87,7 @@ export class DifferenceIdSet<
       }
     });
     this.subtractSets = remainingSets;
-    this.setSubtractSubscriptions(additions, deletions);
+    this.setSubtractionSubscriptions(additions, deletions);
     // proces items of removed subtract sets
     removedSets.forEach((removedSet) => {
       removedSet.forEach((idValue) => this.processOtherDelete(idValue));
@@ -101,7 +101,7 @@ export class DifferenceIdSet<
     super.complete();
   }
 
-  private setSubtractSubscriptions(
+  private setSubtractionSubscriptions(
     additions: Observable<IdValue>[],
     deletions: Observable<IdValue>[]
   ) {
@@ -181,5 +181,33 @@ export class DifferenceIdSet<
         this.createSubject$.next(value);
       }
     }
+  }
+
+  //chaining methods
+
+  /**
+   * Return a new DifferenceIdSet that subtracts the specified IdSets from this IdSet.
+   */
+  /* istanbul ignore next ** trivial */
+  subtract(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
+    return new DifferenceIdSet(this, idSets);
+  }
+  /**
+   * Return a new UnionIdSet that creates a union of this IdSet with the specified IdSets.
+   */
+  /* istanbul ignore next ** trivial */
+  union(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
+    return new UnionIdSet(
+      idSets instanceof BaseIdSet ? [idSets, this] : [...idSets, this]
+    );
+  }
+  /**
+   * Return a new IntersectionIdSet that creates an intersection of this IdSet with the specified IdSets.
+   */
+  /* istanbul ignore next ** trivial */
+  intersect(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
+    return new IntersectionIdSet(
+      idSets instanceof BaseIdSet ? [idSets, this] : [...idSets, this]
+    );
   }
 }

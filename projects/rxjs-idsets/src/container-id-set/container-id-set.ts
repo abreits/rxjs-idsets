@@ -251,21 +251,21 @@ export class ContainerIdSet<IdValue extends IdObject<Id>, Id = string, SetId = s
   /**
    * Return a UnionIdSet that is the union of the specified SetId sets.
    */
-  union(setIds: Iterable<SetId>) {
+  createUnion(setIds: Iterable<SetId>) {
     return new UnionIdSet(this.getInnerIdSets(setIds));
   }
 
   /**
    * Return an IntersectionIdSet that is the intersection of the specified SetId sets.
    */
-  intersection(setIds: Iterable<SetId>) {
+  createIntersection(setIds: Iterable<SetId>) {
     return new IntersectionIdSet(this.getInnerIdSets(setIds));
   }
 
   /**
    * Return a DifferenceIdSet that subtracts the other categories from the specified SetId sets.
    */
-  difference(setId: SetId, subtractedSetIds: OneOrMore<SetId>) {
+  createDifference(setId: SetId, subtractedSetIds: OneOrMore<SetId>) {
     const subtractSets = this.getInnerIdSets(oneOrMoreToArray(subtractedSetIds));
     return new DifferenceIdSet(this.getInnerIdSet(setId), subtractSets);
   }
@@ -274,7 +274,7 @@ export class ContainerIdSet<IdValue extends IdObject<Id>, Id = string, SetId = s
    * Return a DifferenceIdSet that returns a set containing the CategorizedSet minus the
    * subtracted SetId sets.
    */
-  complement(subtractedSetIds: OneOrMore<SetId>) {
+  createComplement(subtractedSetIds: OneOrMore<SetId>) {
     const subtractSets = this.getInnerIdSets(oneOrMoreToArray(subtractedSetIds));
     return new DifferenceIdSet(this, subtractSets);
   }

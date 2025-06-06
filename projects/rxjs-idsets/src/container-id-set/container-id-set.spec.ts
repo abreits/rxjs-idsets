@@ -391,7 +391,7 @@ describe('ContainerIdSet', () => {
       testObject.add([value2, value3], 'set2');
       testObject.add([value1, value4], 'set3');
 
-      const union = testObject.union(['set1', 'set2']);
+      const union = testObject.createUnion(['set1', 'set2']);
       expect(union instanceof UnionIdSet).toBeTrue();
       expect(union.size).toBe(3);
     });
@@ -403,7 +403,7 @@ describe('ContainerIdSet', () => {
       testObject.add([value1, value2, value3], 'set2');
       testObject.add([value1, value4], 'set3');
 
-      const intersection = testObject.intersection(['set1', 'set2', 'set3']);
+      const intersection = testObject.createIntersection(['set1', 'set2', 'set3']);
       expect(intersection instanceof IntersectionIdSet).toBeTrue();
       expect(intersection.size).toBe(1);
     });
@@ -415,7 +415,7 @@ describe('ContainerIdSet', () => {
       testObject.add([value3], 'set2');
       testObject.add([value4], 'set3');
 
-      const intersection = testObject.difference('set1', ['set2', 'set3']);
+      const intersection = testObject.createDifference('set1', ['set2', 'set3']);
       expect(intersection instanceof DifferenceIdSet).toBeTrue();
       expect(intersection.size).toBe(2);
     });
@@ -427,7 +427,7 @@ describe('ContainerIdSet', () => {
       testObject.add([value3], 'set2');
       testObject.add([value4], 'set3');
 
-      const intersection = testObject.complement(['set2', 'set3']);
+      const intersection = testObject.createComplement(['set2', 'set3']);
       expect(intersection instanceof DifferenceIdSet).toBeTrue();
       expect(intersection.size).toBe(2);
     });
