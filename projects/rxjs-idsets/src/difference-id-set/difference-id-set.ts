@@ -1,6 +1,11 @@
 import { Observable, Subscription, merge } from 'rxjs';
 
-import { BaseIdSet, IntersectionIdSet, processDelta, UnionIdSet } from '../public-api';
+import {
+  BaseIdSet,
+  IntersectionIdSet,
+  processDelta,
+  UnionIdSet,
+} from '../public-api';
 import { IdObject } from '../types';
 import { OneOrMore, oneOrMoreForEach } from '../utility/one-or-more';
 
@@ -12,9 +17,9 @@ export class DifferenceIdSet<
   Id = string
 > extends BaseIdSet<IdValue, Id> {
   private subtractSets = new Set<BaseIdSet<IdValue, Id>>();
-  private deltaSubscriber: Subscription;
-  private processAddSubscriber?: Subscription;
-  private processDeleteSubscriber?: Subscription;
+  private processSourceDeltaSubscriber: Subscription;
+  private processOtherAddSubscriber?: Subscription;
+  private processOtherDeleteSubscriber?: Subscription;
   private sourceCompleted = false;
   private subtractionsCompleted = false;
 
@@ -24,7 +29,7 @@ export class DifferenceIdSet<
   ) {
     super();
 
-    this.deltaSubscriber = this.sourceSet.allDelta$.subscribe({
+    this.processSourceDeltaSubscriber = this.sourceSet.allDelta$.subscribe({
       next: (delta) => {
         processDelta<IdValue, Id>(delta, {
           create: (idValue) => this.processAdd(idValue),
@@ -39,13 +44,13 @@ export class DifferenceIdSet<
         }
       },
     });
-    this.addSubtractionIdSets(subtractSets);
+    this.add(subtractSets);
   }
 
   /***
    * Add IdSets to subtract from the source IdSet and update the result
    */
-  public addSubtractionIdSets(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
+  public add(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
     const additions: Observable<IdValue>[] = [];
     const deletions: Observable<IdValue>[] = [];
     // add existing subtract set observables
@@ -68,7 +73,7 @@ export class DifferenceIdSet<
   /***
    * Remove IdSets from collection of sets to subtract from the source IdSet and update the result
    */
-  public removeSubtractIdSets(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
+  public delete(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
     const additions: Observable<IdValue>[] = [];
     const deletions: Observable<IdValue>[] = [];
     const tryRemoveSets = new Set(
@@ -76,6 +81,7 @@ export class DifferenceIdSet<
     );
     const remainingSets = new Set<BaseIdSet<IdValue, Id>>();
     const removedSets: BaseIdSet<IdValue, Id>[] = [];
+    this.pause();
     // add remaining subtract set observables
     oneOrMoreForEach(this.subtractSets, (subtractSet) => {
       if (tryRemoveSets.has(subtractSet)) {
@@ -92,12 +98,13 @@ export class DifferenceIdSet<
     removedSets.forEach((removedSet) => {
       removedSet.forEach((idValue) => this.processOtherDelete(idValue));
     });
+    this.resume();
   }
 
   override complete() {
-    this.deltaSubscriber?.unsubscribe();
-    this.processAddSubscriber?.unsubscribe();
-    this.processDeleteSubscriber?.unsubscribe();
+    this.processSourceDeltaSubscriber?.unsubscribe();
+    this.processOtherAddSubscriber?.unsubscribe();
+    this.processOtherDeleteSubscriber?.unsubscribe();
     super.complete();
   }
 
@@ -105,12 +112,13 @@ export class DifferenceIdSet<
     additions: Observable<IdValue>[],
     deletions: Observable<IdValue>[]
   ) {
-    this.processAddSubscriber?.unsubscribe();
-    this.processDeleteSubscriber?.unsubscribe();
-    this.processAddSubscriber = merge(...additions).subscribe((value) =>
+    this.processOtherAddSubscriber?.unsubscribe();
+    this.processOtherDeleteSubscriber?.unsubscribe();
+    this.pause();
+    this.processOtherAddSubscriber = merge(...additions).subscribe((value) =>
       this.processOtherAdd(value)
     );
-    this.processDeleteSubscriber = merge(...deletions).subscribe({
+    this.processOtherDeleteSubscriber = merge(...deletions).subscribe({
       next: (value) => this.processOtherDelete(value),
       complete: () => {
         this.subtractionsCompleted = true;
@@ -119,6 +127,7 @@ export class DifferenceIdSet<
         }
       },
     });
+    this.resume();
   }
 
   protected processAdd(value: IdValue) {
@@ -126,10 +135,7 @@ export class DifferenceIdSet<
     const currentValue = this.idMap.get(id);
     if (currentValue) {
       // updating existing value
-      if (currentValue !== value) {
-        this.idMap.set(id, value);
-        this.updateSubject$.next(value);
-      }
+      this.addValue(value);
     } else {
       // possibly adding new value
       let notSubtracted = true;
@@ -140,8 +146,7 @@ export class DifferenceIdSet<
         }
       }
       if (notSubtracted) {
-        this.idMap.set(id, value);
-        this.createSubject$.next(value);
+        this.addValue(value);
       }
     }
   }
@@ -159,8 +164,7 @@ export class DifferenceIdSet<
     const id = value.id;
     const currentValue = this.idMap.get(id);
     if (currentValue) {
-      this.idMap.delete(id);
-      this.deleteSubject$.next(currentValue);
+      this.deleteId(currentValue.id);
     }
   }
 
@@ -177,8 +181,7 @@ export class DifferenceIdSet<
         }
       }
       if (notSubtracted) {
-        this.idMap.set(id, value);
-        this.createSubject$.next(value);
+        this.addValue(value);
       }
     }
   }

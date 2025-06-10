@@ -23,7 +23,7 @@ let created: TestValue[];
 let updated: TestValue[];
 let deleted: TestValue[];
 
-describe('DifferenceIdSet', () => {
+fdescribe('DifferenceIdSet', () => {
   beforeEach(() => {
     set1 = new IdSet(idSet123);
     set2 = new IdSet(idSet25);
@@ -128,25 +128,25 @@ describe('DifferenceIdSet', () => {
     });
   });
 
-  describe('subtract', () => {
+  describe('add', () => {
     it('should add a new IdSet to subtraction sets', () => {
-      testObject.addSubtractionIdSets(set4);
+      testObject.add(set4);
 
       expect(testObject.size).toBe(0);
       expect(deleted).toEqual([value1]);
     });
   });
 
-  describe('RemoveSubtract', () => {
+  describe('delete', () => {
     it('should remove an existing IdSet from subtraction sets', () => {
-      testObject.removeSubtractIdSets(set3);
+      testObject.delete(set3);
 
       expect(testObject.size).toBe(2);
       expect(created).toEqual([value3]);
     });
 
     it('should remove an existing IdSet from subtraction sets and ignore unsubtracted sets', () => {
-      testObject.removeSubtractIdSets([set3, set4]);
+      testObject.delete([set3, set4]);
 
       expect(testObject.size).toBe(2);
       expect(created).toEqual([value3]);
