@@ -17,19 +17,32 @@ export class DifferenceIdSet<
   Id = string
 > extends BaseIdSet<IdValue, Id> {
   private subtractSets = new Set<BaseIdSet<IdValue, Id>>();
-  private processSourceDeltaSubscriber: Subscription;
+  private processSourceDeltaSubscriber!: Subscription;
   private processOtherAddSubscriber?: Subscription;
   private processOtherDeleteSubscriber?: Subscription;
   private sourceCompleted = false;
   private subtractionsCompleted = false;
+  private sourceIdSet!: BaseIdSet<IdValue, Id>;
+
+  public get sourceSet() {
+    return this.sourceIdSet;
+  }
 
   constructor(
-    public readonly sourceSet: BaseIdSet<IdValue, Id>,
+    sourceSet: BaseIdSet<IdValue, Id>,
     subtractSets: OneOrMore<BaseIdSet<IdValue, Id>>
   ) {
     super();
+    this.initializeSource(sourceSet,subtractSets);
+  }
 
-    this.processSourceDeltaSubscriber = this.sourceSet.allDelta$.subscribe({
+  private initializeSource(
+    sourceSet: BaseIdSet<IdValue, Id>,
+    subtractSets: OneOrMore<BaseIdSet<IdValue, Id>>
+  ) {
+    this.sourceIdSet = sourceSet;
+
+    this.processSourceDeltaSubscriber = this.sourceIdSet.allDelta$.subscribe({
       next: (delta) => {
         processDelta<IdValue, Id>(delta, {
           create: (idValue) => this.processAdd(idValue),
@@ -98,6 +111,18 @@ export class DifferenceIdSet<
     removedSets.forEach((removedSet) => {
       removedSet.forEach((idValue) => this.processOtherDelete(idValue));
     });
+    this.resume();
+  }
+
+  /**
+   * Replaces the source set and publishes the resulting difference changes.
+   */
+  public replace(sourceSet: BaseIdSet<IdValue, Id>) {
+    this.pause();
+    this.clear();
+    const subtractSets = this.subtractSets;
+    this.subtractSets = new Set();
+    this.initializeSource(sourceSet, subtractSets);
     this.resume();
   }
 

@@ -21,7 +21,12 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
    * Is this IdSet being observed
    */
   get observed() {
-    return this.createSubject$.observed || this.updateSubject$.observed || this.deleteSubject$.observed || this.deltaSubject$.observed;
+    return (
+      this.createSubject$.observed ||
+      this.updateSubject$.observed ||
+      this.deleteSubject$.observed ||
+      this.deltaSubject$.observed
+    );
   }
 
   /**
@@ -77,9 +82,7 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
    * Return all values current present and future changes in a single Observable (created, updated and deleted)
    */
   get allDelta$(): Observable<Readonly<DeltaValue<IdValue>>> {
-    return concat(
-      of({ create: this.idMap.values() }),
-      this.delta$);
+    return concat(of({ create: this.idMap.values() }), this.delta$);
   }
 
   /**
@@ -110,11 +113,11 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
   private deleteDelta = new Map<Id, IdValue>();
 
   /**
-   * Pauses sending each update individually. 
-   * 
+   * Pauses sending each update individually.
+   *
    * When performing lots of overlapping add and/or delete actions on the set
-   * and you only want to publish the results of these actions, you can use this to method to do so. 
-   * 
+   * and you only want to publish the results of these actions, you can use this to method to do so.
+   *
    * Use `resume()` to resume sending updates.
    */
   protected pause() {
@@ -123,21 +126,25 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
 
   /**
    * Sends updates to reflect changes made to the set since `pause()` was called.
-   * 
+   *
    * Resumes sending each update individually after that.
    */
   protected resume() {
     this.pauseCount--;
     if (this.pauseCount === 0) {
       // publish intermittent updates
-      this.deleteDelta.forEach(value => this.deleteSubject$.next(value));
-      this.updateDelta.forEach(value => this.updateSubject$.next(value));
-      this.createDelta.forEach(value => this.createSubject$.next(value));
-      if (this.createDelta.size > 0 || this.updateDelta.size > 0 || this.deleteDelta.size > 0) {
+      this.deleteDelta.forEach((value) => this.deleteSubject$.next(value));
+      this.updateDelta.forEach((value) => this.updateSubject$.next(value));
+      this.createDelta.forEach((value) => this.createSubject$.next(value));
+      if (
+        this.createDelta.size > 0 ||
+        this.updateDelta.size > 0 ||
+        this.deleteDelta.size > 0
+      ) {
         this.deltaSubject$.next({
           create: [...this.createDelta.values()],
           update: [...this.updateDelta.values()],
-          delete: [...this.deleteDelta.values()]
+          delete: [...this.deleteDelta.values()],
         });
       }
       // initialize delta's so they are ready for a new pause()
@@ -151,7 +158,7 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
 
   /**
    * Protected method to add a value to the set, publishes changes to relevant observables
-   * 
+   *
    * For use in child classes
    */
   protected addValue(value: IdValue) {
@@ -198,7 +205,7 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
 
   /**
    * Protected method to delete a value from the set, publishes changes to relevant observables
-   * 
+   *
    * For use in child classes
    */
   protected deleteId(id: Id): boolean {
@@ -228,20 +235,11 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
   /**
    * Removes all values and returns the resulting empty set.
    * Existing subscriptions remain active.
-   * 
+   *
    * For use in child classes
    */
   protected clear() {
-    if (this.idMap.size > 0) {
-      this.deltaSubject$.next({ delete: this.idMap.values() });
-    }
-    if (this.deleteSubject$.observed) {
-      const oldIdMap = this.idMap;
-      this.idMap = new Map();
-      oldIdMap.forEach(value => this.deleteSubject$.next(value));
-    } else {
-      this.idMap.clear();
-    }
+    this.idMap.forEach((_, key) => this.deleteId(key));
     return this;
   }
 
@@ -257,7 +255,10 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
     return this.idMap.values();
   }
 
-  forEach(fn: (value: IdValue, key?: Id, map?: Map<Id, IdValue>) => void, thisArg?: this) {
+  forEach(
+    fn: (value: IdValue, key?: Id, map?: Map<Id, IdValue>) => void,
+    thisArg?: this
+  ) {
     this.idMap.forEach(fn, thisArg);
   }
 
@@ -277,7 +278,7 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
     return this.idMap.entries();
   }
 
-  [Symbol.iterator](): IterableIterator<Readonly<IdValue>>  {
+  [Symbol.iterator](): IterableIterator<Readonly<IdValue>> {
     return this.idMap.values();
   }
 }

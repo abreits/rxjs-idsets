@@ -152,4 +152,14 @@ describe('DifferenceIdSet', () => {
       expect(created).toEqual([value3]);
     });
   });
+
+  describe('replace', () => {
+    it('should replace the source set with another set and publish changes', () => {
+      testObject.replace(set4);
+
+      expect(testObject.size).toBe(2);
+      expect(deleted).toEqual([]);
+      expect(created).toEqual([value4]);
+    });
+  });
 });
