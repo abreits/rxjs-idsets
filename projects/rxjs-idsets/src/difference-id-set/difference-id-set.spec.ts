@@ -23,7 +23,7 @@ let created: TestValue[];
 let updated: TestValue[];
 let deleted: TestValue[];
 
-fdescribe('DifferenceIdSet', () => {
+describe('DifferenceIdSet', () => {
   beforeEach(() => {
     set1 = new IdSet(idSet123);
     set2 = new IdSet(idSet25);
