@@ -397,6 +397,12 @@ source2.add(value4);
 #### `readonly sourceSets: Iterable<BaseIdSet>`
 - The sourceSets the `UnionIdSet` operates upon
 
+#### `add(idSets: OneOrMore<BaseIdSet<IdValue, Id>>)`
+- Add IdSets to the collection of sets tha define the `UnionIdSet`
+
+#### `delete(idSets: OneOrMore<BaseIdSet<IdValue, Id>>)`
+- Remove IdSets from collection of sets tha define the `UnionIdSet`
+
 
 ## IntersectionIdSet
 The `IntersectionIdSet` is a live intersection of the source IdSets defined in the constructor.
@@ -418,6 +424,12 @@ source2.add(value1);
 #### `readonly sourceSets: Iterable<BaseIdSet>`
 - The sourceSets the `IntersectionIdSet` operates upon
 
+#### `add(idSets: OneOrMore<BaseIdSet<IdValue, Id>>)`
+- Add IdSets to the collection of sets tha define the `IntersectionIdSet`
+
+#### `delete(idSets: OneOrMore<BaseIdSet<IdValue, Id>>)`
+- Remove IdSets from collection of sets tha define the `IntersectionIdSet`
+
 
 ## DifferenceIdSet
 The `DifferenceIdSet` is the live difference between the source IdSet and other sets defined in the constructor.
@@ -437,11 +449,14 @@ other1.add(value1);
 #### `constructor(sourceSet: IdSet, otherSets: Iterable<BaseIdSet>)`
 - Define the source and other `IdSets` the `DifferenceIdSet` operates upon at construction.
 
-#### `subtract(idSets: OneOrMore<BaseIdSet<IdValue, Id>>)`
+#### `add(idSets: OneOrMore<BaseIdSet<IdValue, Id>>)`
 - Add IdSets to subtract from the source IdSet and update the result
 
-#### `removeSubtract(idSets: OneOrMore<BaseIdSet<IdValue, Id>>)`
+#### `delete(idSets: OneOrMore<BaseIdSet<IdValue, Id>>)`
 - Remove IdSets from collection of sets to subtract from the source IdSet and update the result
+
+#### `replace(sourceSet: IdSet)`
+- Replace the source the `DifferenceIdSet` operates upon.
 
 #### `readonly sourceSet: BaseIdSet`
 - The sourceSet the `DifferenceIdSet` operates upon
@@ -522,15 +537,15 @@ or undefined if it is not member of any contained set.
 * Creates a new empty IdSet for the SetId if the set does not exist.
 * Returns the IdSet of the specified SetId.
 
-#### `union(sets: Iterable<SetId>)`
+#### `createUnion(sets: Iterable<SetId>)`
 - Return a UnionIdSet that is the union of the specified sets
 
-#### `intersection(sets: Iterable<SetId>)`
+#### `createIntersection(sets: Iterable<SetId>)`
 - Return an IntersectionIdSet that is the intersection of the specified sets
 
-#### `difference(category: SetId, subtractedCategories: OneOrMore<SetId>)`
+#### `createDifference(category: SetId, subtractedCategories: OneOrMore<SetId>)`
 - Return a DifferenceIdSet that subtracts the other sets from the specified category
 
-#### `complement(subtractedCategories: OneOrMore<SetId>)`
+#### `createComplement(subtractedCategories: OneOrMore<SetId>)`
 - Return a ComplementIdSet that returns a set containing the CategorizedSet minus the
 subtracted sets

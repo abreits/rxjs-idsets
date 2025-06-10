@@ -96,7 +96,7 @@ export class DifferenceIdSet<
     const removedSets: BaseIdSet<IdValue, Id>[] = [];
     this.pause();
     // add remaining subtract set observables
-    oneOrMoreForEach(this.subtractSets, (subtractSet) => {
+    for( const subtractSet of this.subtractSets) {
       if (tryRemoveSets.has(subtractSet)) {
         removedSets.push(subtractSet);
       } else {
@@ -104,7 +104,7 @@ export class DifferenceIdSet<
         deletions.push(subtractSet.delete$);
         remainingSets.add(subtractSet);
       }
-    });
+    }
     this.subtractSets = remainingSets;
     this.setSubtractionSubscriptions(additions, deletions);
     // proces items of removed subtract sets
