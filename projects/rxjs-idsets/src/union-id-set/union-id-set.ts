@@ -1,40 +1,54 @@
 import { Observable, Subscription, merge } from 'rxjs';
 
-import { BaseIdSet, DifferenceIdSet, IntersectionIdSet } from '../public-api';
-import { IdObject } from '../types';
-import { OneOrMore, oneOrMoreForEach } from '../utility/one-or-more';
+import {
+  BaseIdSet,
+  DifferenceIdSet,
+  IntersectionIdSet,
+  processDelta,
+} from '../public-api';
+import { DeltaValue, IdObject } from '../types';
+import { OneOrMore } from '../utility/one-or-more';
 
 export class UnionIdSet<
   IdValue extends IdObject<Id>,
   Id = string
 > extends BaseIdSet<IdValue, Id> {
-  private addSubscriber!: Subscription;
-  private deleteSubscriber!: Subscription;
-  private unionSets: Set<BaseIdSet<IdValue, Id>>;
+  private deltaSubscriber!: Subscription;
+  private sourceSets!: Set<BaseIdSet<IdValue, Id>>;
 
-  public get sourceSets() {
-    return this.unionSets;
+  public get sourceIdSets(): Readonly<Set<BaseIdSet<IdValue, Id>>> {
+    return this.sourceSets;
   }
 
   constructor(sourceIdSets: Iterable<BaseIdSet<IdValue, Id>>) {
     super();
+    this.sourceSets = new Set(sourceIdSets);
+    this.sourceSets.forEach((unionSet) => {
+      unionSet.forEach((value) => this.addValue(value));
+    });
+    this.subscribeToSourceSetDeltas();
+  }
 
-    this.unionSets = new Set(sourceIdSets);
-
-    const additions: Observable<IdValue>[] = [];
-    const deletions: Observable<IdValue>[] = [];
-
-    for (const unionSet of this.unionSets) {
-      additions.push(unionSet.allAdd$);
-      deletions.push(unionSet.delete$);
-    }
-
-    this.setUnionSubscriptions(additions, deletions);
+  private subscribeToSourceSetDeltas() {
+    const deltas: Observable<Readonly<DeltaValue<IdValue>>>[] = [];
+    this.sourceSets.forEach((unionSet) => {
+      deltas.push(unionSet.delta$);
+    });
+    this.deltaSubscriber?.unsubscribe();
+    this.deltaSubscriber = merge(...deltas).subscribe({
+      next: (delta) => {
+        processDelta<IdValue, Id>(delta, {
+          create: (idValue) => this.processAdd(idValue),
+          update: (idValue) => this.processAdd(idValue),
+          delete: (idValue) => this.processDelete(idValue),
+        });
+      },
+      complete: () => this.complete(),
+    });
   }
 
   override complete() {
-    this.addSubscriber.unsubscribe();
-    this.deleteSubscriber.unsubscribe();
+    this.deltaSubscriber.unsubscribe();
     super.complete();
   }
 
@@ -47,7 +61,7 @@ export class UnionIdSet<
     const currentValue = this.idMap.get(id);
     if (currentValue) {
       let noLongerPresent = true;
-      for (const unionSet of this.unionSets) {
+      for (const unionSet of this.sourceSets) {
         if (unionSet.has(id)) {
           noLongerPresent = false;
           break;
@@ -63,71 +77,31 @@ export class UnionIdSet<
    * Add IdSets to the UnionIdSet and update the result
    */
   public add(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
-    const additions: Observable<IdValue>[] = [];
-    const deletions: Observable<IdValue>[] = [];
-    // add existing union set observables
-    for (const unionSet of this.unionSets) {
-      additions.push(unionSet.add$);
-      deletions.push(unionSet.delete$);
-    }
-    // add extra union set observables
-    const extraSets = idSets instanceof BaseIdSet ? [idSets] : idSets; // fix iterator on next line
-    oneOrMoreForEach(extraSets, (extraSet) => {
-      if (!this.unionSets.has(extraSet)) {
-        additions.push(extraSet.allAdd$);
-        deletions.push(extraSet.delete$);
-        this.unionSets.add(extraSet);
+    this.pause();
+    const extraSets = idSets instanceof BaseIdSet ? [idSets] : idSets;
+    for (const extraSet of extraSets) {
+      if (!this.sourceSets.has(extraSet)) {
+        extraSet.forEach((value) => this.processAdd(value));
+        this.sourceSets.add(extraSet);
       }
-    });
-
-    this.setUnionSubscriptions(additions, deletions);
+    }
+    this.subscribeToSourceSetDeltas();
+    this.resume();
   }
 
   /***
    * Remove IdSets from the UnionIdSet and update the result
    */
   public delete(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
-    const additions: Observable<IdValue>[] = [];
-    const deletions: Observable<IdValue>[] = [];
-    const tryRemoveSets = new Set(
-      idSets instanceof BaseIdSet ? [idSets] : idSets
-    );
-    const remainingSets = new Set<BaseIdSet<IdValue, Id>>();
-    const removedSets: BaseIdSet<IdValue, Id>[] = [];
     this.pause();
-    // add remaining union set observables
-    for (const unionSet of this.unionSets) {
-      if (tryRemoveSets.has(unionSet)) {
-        removedSets.push(unionSet);
-      } else {
-        additions.push(unionSet.add$);
-        deletions.push(unionSet.delete$);
-        remainingSets.add(unionSet);
+    const removedSets = idSets instanceof BaseIdSet ? [idSets] : idSets;
+    for (const removeSet of removedSets) {
+      if (this.sourceSets.has(removeSet)) {
+        this.sourceSets.delete(removeSet);
+        removeSet.forEach((value) => this.processDelete(value));
       }
     }
-    this.unionSets = remainingSets;
-    this.setUnionSubscriptions(additions, deletions);
-    // proces items of removed subtract sets
-    removedSets.forEach((removedSet) => {
-      removedSet.forEach((idValue) => this.processDelete(idValue));
-    });
-    this.resume();
-  }
-
-  private setUnionSubscriptions(
-    additions: Observable<IdValue>[],
-    deletions: Observable<IdValue>[]
-  ) {
-    this.addSubscriber?.unsubscribe();
-    this.deleteSubscriber?.unsubscribe();
-    this.pause();
-    this.addSubscriber = merge(...additions).subscribe((value) =>
-      this.processAdd(value)
-    );
-    this.deleteSubscriber = merge(...deletions).subscribe({
-      next: (value) => this.processDelete(value),
-      complete: () => this.complete(),
-    });
+    this.subscribeToSourceSetDeltas();
     this.resume();
   }
 

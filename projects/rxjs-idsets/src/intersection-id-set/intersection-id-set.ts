@@ -54,23 +54,13 @@ export class IntersectionIdSet<
         }
       }
       if (presentInAll) {
-        this.idMap.set(id, value);
-        if (currentValue === undefined) {
-          this.createSubject$.next(value);
-        } else {
-          this.updateSubject$.next(value);
-        }
+        this.addValue(value);
       }
     }
   }
 
   protected processDelete(value: IdValue) {
-    const id = value.id;
-    const currentValue = this.idMap.get(id);
-    if (currentValue) {
-      this.idMap.delete(id);
-      this.deleteSubject$.next(currentValue);
-    }
+    this.deleteId(value.id);
   }
 
   //chaining methods
