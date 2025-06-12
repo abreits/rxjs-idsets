@@ -1,5 +1,15 @@
 # Change Log
 
+## 4.0.0
+- changed names of some properties to make them more uniform
+- Refactor of UnionIdSet, IntersectionIdSet and DifferenceIdSet
+- made pause() and resume() method public
+- added add() and resume() method to UnionIdSet, IntersectionIdSet and DifferenceIdSet 
+to change the sets they operate upon while active.
+- added replace() method to DifferenceIdSet to change the sourceIdSet while active
+- updated README
+- updated @angular build environment to 19.2.14
+
 ## 3.0.0
 - All IdObject values returned from the IdSet are now readonly to further promote immutability
 - Fixed resume() bug for async resumes
