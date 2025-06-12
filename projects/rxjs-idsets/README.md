@@ -130,6 +130,12 @@ exampleSet.clear();
 exampleSet.complete();
 // completes all existing and new subscriptions ('unsubscribes' them)
 // all existing and new subscriptions will no longer receive added, updated or deleted values
+exampleSet.pause();
+// pauses all observable updates, 
+// useful when batch processing multiple add, update and/ore delete actions
+// automatically removes overlapping/multiple add remove and update actions on the same value
+exampleset.resume();
+// resumes publishing of observables, immediately publishes all paused updates
 ```
 A more complete example for the IdSet can be found in [example1.ts](./examples/example1.ts)
 
@@ -154,6 +160,11 @@ set1.delete(value2);
 // unionSet: [value1, value2, value3, value4] because value2 is still in set2
 set1.delete(value1);
 // unionSet: [value2, value3, value4] because value1 is not in another union source it is deleted
+unionSet.add(set3);
+unionSet.add([set3, set4]);
+// adds extra sets to the unionSet
+unionSet.delete(set1);
+// removes sets from the unionSet
 ```
 
 ## Example 3, IntersectionIdSet
@@ -175,6 +186,11 @@ set1.delete(value1);
 // intersectionSet: [value2] because value3 was not in the intersection
 set1.add(value3);
 // intersectionSet: [value2, value3] because value3 is now in all intersection sources
+intersectionSet.add(set3);
+intersectionSet.add([set3, set4]);
+// adds extra sets to the intersectionSet
+intersectionSet.delete(set1);
+// removes sets from the intersectionSet
 ```
 
 ## Example 4, DifferenceIdSet
@@ -185,8 +201,15 @@ Updates in one of the sets are immediately processed in the difference set. The 
 const sourceSet = new IdSet([value1, value2, value3])
 const subtractSet1 = new IdSet([value1]);
 const subtractSet2 = new IdSet([value2]);
-const differenceResultSet = new DifferenceIdSet(sourceSet, [set1, set2]);
+const differenceSet = new DifferenceIdSet(sourceSet, [set1, set2]);
 // differenceResultSet: [value3]
+differenceSet.add(set3);
+differenceSet.add([set3, set4]);
+// adds extra subtract sets to the differenceSet
+differenceSet.delete(set1);
+// removes subtract sets from the differenceSet
+differenceSet.replace(newSource);
+// replaces the source set of the differenceSet with the newSource set
 
 // subscribe to create$
 differenceResultSet.create$.subscribe(value => console.log('created new', value));
@@ -305,11 +328,20 @@ but you start when the Set is already populated with values.
 #### `observed`
 - `true` when the BaseIdSet is observed (subscribed to), `false` otherwise.
 
+#### `pause()`
+- Pauses all Observables in the set, modifications to the set when paused will be published
+ after calling the `resume()` method.
+
+#### `resume()`
+- Resumes all Observables in the set, alle modifications to the set after calling `pause()`
+ will be published after calling the `resume()` method. Later updates will be published immediately.
+
 #### `complete()`
 - Completes all Observables in the set, modifications to the set will no longer be propageted through these observables. Only the `all$` Observable will still function.
 
 ### Standard `Set` properties and methods
-The methods and properties that are more or less identical to the default `Set` classes are given below. No description apart from the type annotation is given.
+The methods and properties that are more or less identical to the default javascript `Set` class.
+See below, no description apart from the type annotation is given.
 
 #### `size: number`
 
@@ -339,12 +371,6 @@ There are a few protected methods that can be used when creating your own IdSet 
 
 ### `protected clear()`
 - Clears all values from the set, updating observables when needed.
-
-### `protected pause()`
-- Pauses updating observables, but keeps track of all changes since paused.
-
-### `protected resume()`
-- Publishes the changes since paused to the observables and resumes updating observables.
 
 ## IdSet
 This is the basic 'bread and butter' class of the `IdSet` classes (that is why it is called `IdSet`).
@@ -384,15 +410,26 @@ The `UnionIdSet` is a 'live' representation of that union. I.e. if the content o
 ``` typescript
 source1 = new IdSet([value1, value2]);
 source2 = new IdSet([value2, value3]);
+source3 = new IdSet([value3, value5]);
 unionIdSet = new UnionIdSet([source1, source2]); //contains [value1, value2, value3]
 source2.add(value4);
 // unionIdSet now contains [value1, value2, value3, value4]
+unionIdSet.add(source3);
+// unionIdSet now contains [value1, value2, value3, value4, value5]
+unionIdSet.delete(source1);
+// unionIdSet now contains [value2, value3, value4, value5]
 ```
 
 ### Additional properties and methods
 
 #### `constructor(sourceSets: Iterable<BaseIdSet>)`
 - Define the source `IdSets` the `UnionIdSet` operates upon at construction.
+
+#### `add(idSets: OneOrMore<BaseIdSet<IdValue, Id>>)`
+- Add IdSets to the union and update the result
+
+#### `delete(idSets: OneOrMore<BaseIdSet<IdValue, Id>>)`
+- Remove IdSets from the union and update the result
 
 #### `readonly sourceSets: Iterable<BaseIdSet>`
 - The sourceSets the `UnionIdSet` operates upon
@@ -420,6 +457,12 @@ source2.add(value1);
 ### Additional properties and methods
 #### `constructor(sourceSets: Iterable<BaseIdSet>)`
 - Define the source `IdSets` the `IntersectionIdSet` operates upon at construction.
+
+#### `add(idSets: OneOrMore<BaseIdSet<IdValue, Id>>)`
+- Add IdSets to the intersection and update the result
+
+#### `delete(idSets: OneOrMore<BaseIdSet<IdValue, Id>>)`
+- Remove IdSets from the intersection and update the result
 
 #### `readonly sourceSets: Iterable<BaseIdSet>`
 - The sourceSets the `IntersectionIdSet` operates upon

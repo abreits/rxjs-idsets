@@ -120,7 +120,7 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
    *
    * Use `resume()` to resume sending updates.
    */
-  protected pause() {
+  public pause() {
     this.pauseCount++;
   }
 
@@ -129,7 +129,7 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
    *
    * Resumes sending each update individually after that.
    */
-  protected resume() {
+  public resume() {
     this.pauseCount--;
     if (this.pauseCount === 0) {
       // publish intermittent updates
