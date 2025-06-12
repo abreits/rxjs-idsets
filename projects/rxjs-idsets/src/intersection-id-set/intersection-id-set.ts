@@ -27,15 +27,15 @@ export class IntersectionIdSet<
     super();
     this.sourceSets = new Set(sourceIdSets);
     this.buildIntersectionSet();
-    this.subscribeToSourceSetDeltas();
+    this.processSourceSetDeltas();
   }
 
   private buildIntersectionSet() {
     const firstSourceSet = [...this.sourceSets][0];
-    firstSourceSet.forEach((value) => this.processAdd(value));
+    firstSourceSet.forEach((value) => this.addedFromSourceSet(value));
   }
 
-  private subscribeToSourceSetDeltas() {
+  private processSourceSetDeltas() {
     const deltas: Observable<Readonly<DeltaValue<IdValue>>>[] = [];
     this.sourceSets.forEach((unionSet) => {
       deltas.push(unionSet.delta$);
@@ -44,9 +44,9 @@ export class IntersectionIdSet<
     this.deltaSubscriber = merge(...deltas).subscribe({
       next: (delta) => {
         processDelta<IdValue, Id>(delta, {
-          create: (idValue) => this.processAdd(idValue),
-          update: (idValue) => this.processAdd(idValue),
-          delete: (idValue) => this.processDelete(idValue),
+          create: (idValue) => this.addedFromSourceSet(idValue),
+          update: (idValue) => this.addedFromSourceSet(idValue),
+          delete: (idValue) => this.deletedFromSourceSet(idValue),
         });
       },
       complete: () => this.complete(),
@@ -58,7 +58,7 @@ export class IntersectionIdSet<
     super.complete();
   }
 
-  protected processAdd(value: IdValue) {
+  protected addedFromSourceSet(value: IdValue) {
     const currentValue = this.idMap.get(value.id);
     if (currentValue !== value) {
       this.processIntersection(value);
@@ -81,7 +81,7 @@ export class IntersectionIdSet<
     }
   }
 
-  protected processDelete(value: IdValue) {
+  protected deletedFromSourceSet(value: IdValue) {
     this.deleteId(value.id);
   }
 
@@ -95,7 +95,7 @@ export class IntersectionIdSet<
       this.sourceSets.add(extraSet);
     }
     this.idMap.forEach((value) => this.processIntersection(value));
-    this.subscribeToSourceSetDeltas();
+    this.processSourceSetDeltas();
     this.resume();
   }
 
@@ -109,7 +109,7 @@ export class IntersectionIdSet<
       this.sourceSets.delete(removeSet);
     }
     this.buildIntersectionSet();
-    this.subscribeToSourceSetDeltas();
+    this.processSourceSetDeltas();
     this.resume();
   }
 

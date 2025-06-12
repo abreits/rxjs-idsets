@@ -6,7 +6,7 @@ import {
   processDelta,
   UnionIdSet,
 } from '../public-api';
-import { IdObject } from '../types';
+import { DeltaValue, IdObject } from '../types';
 import { OneOrMore } from '../utility/one-or-more';
 
 /**
@@ -16,38 +16,47 @@ export class DifferenceIdSet<
   IdValue extends IdObject<Id>,
   Id = string
 > extends BaseIdSet<IdValue, Id> {
-  private subtractSets = new Set<BaseIdSet<IdValue, Id>>();
-  private processSourceDeltaSubscriber!: Subscription;
-  private processOtherAddSubscriber?: Subscription;
-  private processOtherDeleteSubscriber?: Subscription;
+  private sourceSet: BaseIdSet<IdValue, Id>;
+  private subtractedSets = new Set<BaseIdSet<IdValue, Id>>();
+
+  private sourceDeltaSubscriber!: Subscription;
+  private subtractDeltaSubscriber!: Subscription;
+
   private sourceCompleted = false;
   private subtractionsCompleted = false;
-  private sourceIdSet!: BaseIdSet<IdValue, Id>;
 
-  public get sourceSet() {
+  public get sourceIdSet(): Readonly<BaseIdSet<IdValue, Id>> {
     return this.sourceIdSet;
+  }
+  public get subtractedIdSets(): Readonly<Set<BaseIdSet<IdValue, Id>>> {
+    return this.subtractedSets;
   }
 
   constructor(
-    sourceSet: BaseIdSet<IdValue, Id>,
-    subtractSets: OneOrMore<BaseIdSet<IdValue, Id>>
+    sourceIdSet: BaseIdSet<IdValue, Id>,
+    subtractedIdSets: OneOrMore<BaseIdSet<IdValue, Id>>
   ) {
     super();
-    this.initializeSource(sourceSet, subtractSets);
+    this.sourceSet = sourceIdSet;
+    this.setSubtractedSets(subtractedIdSets);
+    this.sourceSet.forEach((value) => this.addedFromSource(value));
+    this.processSource();
+    this.processSubtractions();
   }
 
-  private initializeSource(
-    sourceSet: BaseIdSet<IdValue, Id>,
-    subtractSets: OneOrMore<BaseIdSet<IdValue, Id>>
-  ) {
-    this.sourceIdSet = sourceSet;
+  private setSubtractedSets(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
+    const subtractedSets = idSets instanceof BaseIdSet ? [idSets] : idSets;
+    this.subtractedSets = new Set(subtractedSets);
+  }
 
-    this.processSourceDeltaSubscriber = this.sourceIdSet.allDelta$.subscribe({
+  private processSource() {
+    this.sourceDeltaSubscriber?.unsubscribe();
+    this.sourceDeltaSubscriber = this.sourceSet.delta$.subscribe({
       next: (delta) => {
         processDelta<IdValue, Id>(delta, {
-          create: (idValue) => this.processAdd(idValue),
-          update: (idValue) => this.processAdd(idValue),
-          delete: (idValue) => this.processDelete(idValue),
+          create: (idValue) => this.addedFromSource(idValue),
+          update: (idValue) => this.addedFromSource(idValue),
+          delete: (idValue) => this.deletedFromSource(idValue),
         });
       },
       complete: () => {
@@ -57,94 +66,21 @@ export class DifferenceIdSet<
         }
       },
     });
-    this.add(subtractSets);
   }
 
-  /***
-   * Add IdSets to subtract from the source IdSet and update the result
-   */
-  public add(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
-    const additions: Observable<IdValue>[] = [];
-    const deletions: Observable<IdValue>[] = [];
-    // add existing subtract set observables
-    this.subtractSets.forEach((subtractSet) => {
-      additions.push(subtractSet.add$);
-      deletions.push(subtractSet.delete$);
+  private processSubtractions() {
+    const deltas: Observable<Readonly<DeltaValue<IdValue>>>[] = [];
+    this.subtractedSets.forEach((unionSet) => {
+      deltas.push(unionSet.delta$);
     });
-    // add extra subtract set observables
-    const extraSets = idSets instanceof BaseIdSet ? [idSets] : idSets; // fix iterator on next line
-    for(const extraSet of extraSets) {
-      if (!this.subtractSets.has(extraSet)) {
-        additions.push(extraSet.allAdd$);
-        deletions.push(extraSet.delete$);
-        this.subtractSets.add(extraSet);
-      }
-    }
-    this.setSubtractionSubscriptions(additions, deletions);
-  }
-
-  /***
-   * Remove IdSets from collection of sets to subtract from the source IdSet and update the result
-   */
-  public delete(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
-    const additions: Observable<IdValue>[] = [];
-    const deletions: Observable<IdValue>[] = [];
-    const tryRemoveSets = new Set(
-      idSets instanceof BaseIdSet ? [idSets] : idSets
-    );
-    const remainingSets = new Set<BaseIdSet<IdValue, Id>>();
-    const removedSets: BaseIdSet<IdValue, Id>[] = [];
-    this.pause();
-    // add remaining subtract set observables
-    for (const subtractSet of this.subtractSets) {
-      if (tryRemoveSets.has(subtractSet)) {
-        removedSets.push(subtractSet);
-      } else {
-        additions.push(subtractSet.add$);
-        deletions.push(subtractSet.delete$);
-        remainingSets.add(subtractSet);
-      }
-    }
-    this.subtractSets = remainingSets;
-    this.setSubtractionSubscriptions(additions, deletions);
-    // proces items of removed subtract sets
-    removedSets.forEach((removedSet) => {
-      removedSet.forEach((idValue) => this.processOtherDelete(idValue));
-    });
-    this.resume();
-  }
-
-  /**
-   * Replaces the source set and publishes the resulting difference changes.
-   */
-  public replace(sourceSet: BaseIdSet<IdValue, Id>) {
-    this.pause();
-    this.clear();
-    const subtractSets = this.subtractSets;
-    this.subtractSets = new Set();
-    this.initializeSource(sourceSet, subtractSets);
-    this.resume();
-  }
-
-  override complete() {
-    this.processSourceDeltaSubscriber?.unsubscribe();
-    this.processOtherAddSubscriber?.unsubscribe();
-    this.processOtherDeleteSubscriber?.unsubscribe();
-    super.complete();
-  }
-
-  private setSubtractionSubscriptions(
-    additions: Observable<IdValue>[],
-    deletions: Observable<IdValue>[]
-  ) {
-    this.processOtherAddSubscriber?.unsubscribe();
-    this.processOtherDeleteSubscriber?.unsubscribe();
-    this.pause();
-    this.processOtherAddSubscriber = merge(...additions).subscribe((value) =>
-      this.processOtherAdd(value)
-    );
-    this.processOtherDeleteSubscriber = merge(...deletions).subscribe({
-      next: (value) => this.processOtherDelete(value),
+    this.subtractDeltaSubscriber?.unsubscribe();
+    this.subtractDeltaSubscriber = merge(...deltas).subscribe({
+      next: (delta) => {
+        processDelta<IdValue, Id>(delta, {
+          create: (idValue) => this.addedFromSubtractSet(idValue),
+          delete: (idValue) => this.deletedFromSubtractSet(idValue),
+        });
+      },
       complete: () => {
         this.subtractionsCompleted = true;
         if (this.sourceCompleted) {
@@ -152,10 +88,55 @@ export class DifferenceIdSet<
         }
       },
     });
+  }
+
+  /***
+   * Add IdSets to subtract from the source IdSet and update the result
+   */
+  public add(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
+    this.pause();
+    const extraSubtractSets = idSets instanceof BaseIdSet ? [idSets] : idSets;
+    for (const extraSet of extraSubtractSets) {
+      if (!this.subtractedSets.has(extraSet)) {
+        this.subtractedSets.add(extraSet);
+        extraSet.forEach((value) => this.addedFromSubtractSet(value));
+      }
+    }
+    this.processSubtractions();
     this.resume();
   }
 
-  protected processAdd(value: IdValue) {
+  /***
+   * Remove IdSets from collection of sets to subtract from the source IdSet and update the result
+   */
+  public delete(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
+    this.pause();
+    const removedSubtractSets = idSets instanceof BaseIdSet ? [idSets] : idSets;
+    for (const removedSet of removedSubtractSets) {
+      this.subtractedSets.delete(removedSet);
+    }
+    this.sourceSet.forEach((value) => this.addedFromSource(value));
+    this.resume();
+  }
+
+  /**
+   * Replaces the source set and publishes the resulting difference changes.
+   */
+  public replace(sourceIdSet: BaseIdSet<IdValue, Id>) {
+    this.pause();
+    this.clear();
+    this.sourceSet = sourceIdSet;
+    this.sourceSet.forEach((value) => this.addedFromSource(value));
+    this.resume();
+  }
+
+  override complete() {
+    this.sourceDeltaSubscriber?.unsubscribe();
+    this.subtractDeltaSubscriber?.unsubscribe();
+    super.complete();
+  }
+
+  protected addedFromSource(value: IdValue) {
     const id = value.id;
     const currentValue = this.idMap.get(id);
     if (currentValue) {
@@ -164,7 +145,7 @@ export class DifferenceIdSet<
     } else {
       // possibly adding new value
       let notSubtracted = true;
-      for (const subtractionSet of this.subtractSets) {
+      for (const subtractionSet of this.subtractedSets) {
         if (subtractionSet.has(id)) {
           notSubtracted = false;
           break;
@@ -176,16 +157,11 @@ export class DifferenceIdSet<
     }
   }
 
-  protected processDelete(value: IdValue) {
-    const id = value.id;
-    const currentValue = this.idMap.get(id);
-    if (currentValue) {
-      this.idMap.delete(id);
-      this.deleteSubject$.next(currentValue);
-    }
+  protected deletedFromSource(value: IdValue) {
+    this.deleteId(value.id);
   }
 
-  protected processOtherAdd(value: IdValue) {
+  protected addedFromSubtractSet(value: IdValue) {
     const id = value.id;
     const currentValue = this.idMap.get(id);
     if (currentValue) {
@@ -193,13 +169,13 @@ export class DifferenceIdSet<
     }
   }
 
-  protected processOtherDelete(value: IdValue) {
+  protected deletedFromSubtractSet(value: IdValue) {
     const id = value.id;
     const sourceValue = this.sourceSet.get(id);
     if (sourceValue) {
       // add the no longer subtracted value?
       let notSubtracted = true;
-      for (const subtractionSet of this.subtractSets) {
+      for (const subtractionSet of this.subtractedSets) {
         if (subtractionSet.has(id)) {
           notSubtracted = false;
           break;

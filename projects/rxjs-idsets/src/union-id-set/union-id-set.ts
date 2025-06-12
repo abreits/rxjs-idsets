@@ -26,10 +26,10 @@ export class UnionIdSet<
     this.sourceSets.forEach((unionSet) => {
       unionSet.forEach((value) => this.addValue(value));
     });
-    this.subscribeToSourceSetDeltas();
+    this.processSourceSetDeltas();
   }
 
-  private subscribeToSourceSetDeltas() {
+  private processSourceSetDeltas() {
     const deltas: Observable<Readonly<DeltaValue<IdValue>>>[] = [];
     this.sourceSets.forEach((unionSet) => {
       deltas.push(unionSet.delta$);
@@ -38,9 +38,9 @@ export class UnionIdSet<
     this.deltaSubscriber = merge(...deltas).subscribe({
       next: (delta) => {
         processDelta<IdValue, Id>(delta, {
-          create: (idValue) => this.processAdd(idValue),
-          update: (idValue) => this.processAdd(idValue),
-          delete: (idValue) => this.processDelete(idValue),
+          create: (idValue) => this.addedFromSourceSet(idValue),
+          update: (idValue) => this.addedFromSourceSet(idValue),
+          delete: (idValue) => this.deletedFromSourceSet(idValue),
         });
       },
       complete: () => this.complete(),
@@ -52,11 +52,11 @@ export class UnionIdSet<
     super.complete();
   }
 
-  protected processAdd(value: IdValue) {
+  protected addedFromSourceSet(value: IdValue) {
     this.addValue(value);
   }
 
-  protected processDelete(value: IdValue) {
+  protected deletedFromSourceSet(value: IdValue) {
     const id = value.id;
     const currentValue = this.idMap.get(id);
     if (currentValue) {
@@ -81,11 +81,11 @@ export class UnionIdSet<
     const extraSets = idSets instanceof BaseIdSet ? [idSets] : idSets;
     for (const extraSet of extraSets) {
       if (!this.sourceSets.has(extraSet)) {
-        extraSet.forEach((value) => this.processAdd(value));
+        extraSet.forEach((value) => this.addedFromSourceSet(value));
         this.sourceSets.add(extraSet);
       }
     }
-    this.subscribeToSourceSetDeltas();
+    this.processSourceSetDeltas();
     this.resume();
   }
 
@@ -98,10 +98,10 @@ export class UnionIdSet<
     for (const removeSet of removedSets) {
       if (this.sourceSets.has(removeSet)) {
         this.sourceSets.delete(removeSet);
-        removeSet.forEach((value) => this.processDelete(value));
+        removeSet.forEach((value) => this.deletedFromSourceSet(value));
       }
     }
-    this.subscribeToSourceSetDeltas();
+    this.processSourceSetDeltas();
     this.resume();
   }
 
