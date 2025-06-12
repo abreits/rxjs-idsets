@@ -7,7 +7,7 @@ import {
   UnionIdSet,
 } from '../public-api';
 import { IdObject } from '../types';
-import { OneOrMore, oneOrMoreForEach } from '../utility/one-or-more';
+import { OneOrMore } from '../utility/one-or-more';
 
 /**
  * IdSet that contains all values of the difference between the source set and the other IdSets passed in the constructor
@@ -33,7 +33,7 @@ export class DifferenceIdSet<
     subtractSets: OneOrMore<BaseIdSet<IdValue, Id>>
   ) {
     super();
-    this.initializeSource(sourceSet,subtractSets);
+    this.initializeSource(sourceSet, subtractSets);
   }
 
   private initializeSource(
@@ -67,19 +67,19 @@ export class DifferenceIdSet<
     const additions: Observable<IdValue>[] = [];
     const deletions: Observable<IdValue>[] = [];
     // add existing subtract set observables
-    oneOrMoreForEach(this.subtractSets, (subtractSet) => {
+    this.subtractSets.forEach((subtractSet) => {
       additions.push(subtractSet.add$);
       deletions.push(subtractSet.delete$);
     });
     // add extra subtract set observables
     const extraSets = idSets instanceof BaseIdSet ? [idSets] : idSets; // fix iterator on next line
-    oneOrMoreForEach(extraSets, (extraSet) => {
+    for(const extraSet of extraSets) {
       if (!this.subtractSets.has(extraSet)) {
         additions.push(extraSet.allAdd$);
         deletions.push(extraSet.delete$);
         this.subtractSets.add(extraSet);
       }
-    });
+    }
     this.setSubtractionSubscriptions(additions, deletions);
   }
 
@@ -96,7 +96,7 @@ export class DifferenceIdSet<
     const removedSets: BaseIdSet<IdValue, Id>[] = [];
     this.pause();
     // add remaining subtract set observables
-    for( const subtractSet of this.subtractSets) {
+    for (const subtractSet of this.subtractSets) {
       if (tryRemoveSets.has(subtractSet)) {
         removedSets.push(subtractSet);
       } else {

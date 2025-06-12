@@ -61,8 +61,8 @@ export class UnionIdSet<
     const currentValue = this.idMap.get(id);
     if (currentValue) {
       let noLongerPresent = true;
-      for (const unionSet of this.sourceSets) {
-        if (unionSet.has(id)) {
+      for (const sourceSet of this.sourceSets) {
+        if (sourceSet.has(id)) {
           noLongerPresent = false;
           break;
         }

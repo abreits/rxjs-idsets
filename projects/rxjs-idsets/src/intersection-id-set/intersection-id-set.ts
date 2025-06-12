@@ -1,7 +1,12 @@
 import { Observable, Subscription, merge } from 'rxjs';
 
-import { BaseIdSet, DifferenceIdSet, UnionIdSet } from '../public-api';
-import { IdObject } from '../types';
+import {
+  BaseIdSet,
+  DifferenceIdSet,
+  processDelta,
+  UnionIdSet,
+} from '../public-api';
+import { DeltaValue, IdObject } from '../types';
 import { OneOrMore } from '../utility/one-or-more';
 
 /**
@@ -11,56 +16,101 @@ export class IntersectionIdSet<
   IdValue extends IdObject<Id>,
   Id = string
 > extends BaseIdSet<IdValue, Id> {
-  private addSubscriber: Subscription;
-  private deleteSubscriber: Subscription;
+  private deltaSubscriber!: Subscription;
+  private sourceSets!: Set<BaseIdSet<IdValue, Id>>;
 
-  constructor(
-    public readonly intersectionSets: Iterable<BaseIdSet<IdValue, Id>>
-  ) {
+  public get sourceIdSets(): Readonly<Set<BaseIdSet<IdValue, Id>>> {
+    return this.sourceSets;
+  }
+
+  constructor(sourceIdSets: Iterable<BaseIdSet<IdValue, Id>>) {
     super();
+    this.sourceSets = new Set(sourceIdSets);
+    this.buildIntersectionSet();
+    this.subscribeToSourceSetDeltas();
+  }
 
-    const additions: Observable<IdValue>[] = [];
-    const deletions: Observable<IdValue>[] = [];
+  private buildIntersectionSet() {
+    const firstSourceSet = [...this.sourceSets][0];
+    firstSourceSet.forEach((value) => this.processAdd(value));
+  }
 
-    for (const intersectionSet of this.intersectionSets) {
-      additions.push(intersectionSet.allAdd$);
-      deletions.push(intersectionSet.delete$);
-    }
-
-    this.addSubscriber = merge(...additions).subscribe((value) =>
-      this.processAdd(value)
-    );
-    this.deleteSubscriber = merge(...deletions).subscribe({
-      next: (value) => this.processDelete(value),
+  private subscribeToSourceSetDeltas() {
+    const deltas: Observable<Readonly<DeltaValue<IdValue>>>[] = [];
+    this.sourceSets.forEach((unionSet) => {
+      deltas.push(unionSet.delta$);
+    });
+    this.deltaSubscriber?.unsubscribe();
+    this.deltaSubscriber = merge(...deltas).subscribe({
+      next: (delta) => {
+        processDelta<IdValue, Id>(delta, {
+          create: (idValue) => this.processAdd(idValue),
+          update: (idValue) => this.processAdd(idValue),
+          delete: (idValue) => this.processDelete(idValue),
+        });
+      },
       complete: () => this.complete(),
     });
   }
 
   override complete() {
-    this.addSubscriber.unsubscribe();
-    this.deleteSubscriber.unsubscribe();
+    this.deltaSubscriber.unsubscribe();
     super.complete();
   }
 
   protected processAdd(value: IdValue) {
-    const id = value.id;
-    const currentValue = this.idMap.get(id);
+    const currentValue = this.idMap.get(value.id);
     if (currentValue !== value) {
-      let presentInAll = true;
-      for (const unionSet of this.intersectionSets) {
-        if (!unionSet.has(id)) {
-          presentInAll = false;
-          break;
-        }
+      this.processIntersection(value);
+    }
+  }
+
+  private processIntersection(value: IdValue) {
+    const id = value.id;
+    let presentInAll = true;
+    for (const sourceSet of this.sourceSets) {
+      if (!sourceSet.has(id)) {
+        presentInAll = false;
+        break;
       }
-      if (presentInAll) {
-        this.addValue(value);
-      }
+    }
+    if (presentInAll) {
+      this.addValue(value);
+    } else {
+      this.deleteId(value.id);
     }
   }
 
   protected processDelete(value: IdValue) {
     this.deleteId(value.id);
+  }
+
+  /***
+   * Add IdSets to the IntersectionIdSet and update the result
+   */
+  public add(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
+    this.pause();
+    const extraSets = idSets instanceof BaseIdSet ? [idSets] : idSets;
+    for (const extraSet of extraSets) {
+      this.sourceSets.add(extraSet);
+    }
+    this.idMap.forEach((value) => this.processIntersection(value));
+    this.subscribeToSourceSetDeltas();
+    this.resume();
+  }
+
+  /***
+   * Remove IdSets from the IntersectionIdSet and update the result
+   */
+  public delete(idSets: OneOrMore<BaseIdSet<IdValue, Id>>) {
+    this.pause();
+    const removedSets = idSets instanceof BaseIdSet ? [idSets] : idSets;
+    for (const removeSet of removedSets) {
+      this.sourceSets.delete(removeSet);
+    }
+    this.buildIntersectionSet();
+    this.subscribeToSourceSetDeltas();
+    this.resume();
   }
 
   //chaining methods
