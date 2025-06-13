@@ -6,7 +6,7 @@ import {
   processDelta,
   UnionIdSet,
 } from '../public-api';
-import { DeltaValue, IdObject } from '../types';
+import { DeltaValue, IdObject, IdSetConfig } from '../types';
 import { OneOrMore } from '../utility/one-or-more';
 
 /**
@@ -34,9 +34,10 @@ export class DifferenceIdSet<
 
   constructor(
     sourceIdSet: BaseIdSet<IdValue, Id>,
-    subtractedIdSets: OneOrMore<BaseIdSet<IdValue, Id>>
+    subtractedIdSets: OneOrMore<BaseIdSet<IdValue, Id>>,
+    config?: IdSetConfig<IdValue>
   ) {
-    super();
+    super([], config);
     this.sourceSet = sourceIdSet;
     this.setSubtractedSets(subtractedIdSets);
     this.sourceSet.forEach((value) => this.addedFromSource(value));

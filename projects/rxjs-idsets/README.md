@@ -291,8 +291,20 @@ It is an IdSet that is readonly. This means that it provides no way to change it
 
 The methods and properties that define the basic functionality of the `IdSet` classes are described below.
 
-#### `constructor(values?: Iterable<IdValue>, cloneValues = false)`
-* Creates a new Set based the values given. If no values are supplied an empty Set is created.
+#### `constructor(values?: Iterable<IdValue>, config?: IdSetConfig)`
+``` typescript
+type IdSetConfig<SourceIdValue, ResultIdValue=SourceIdValue> = {
+  cloneValues?: boolean;
+  filter?: (value: SourceIdValue) => boolean;
+  transform?: (value: SourceIdValue) => ResultIdValue;
+}
+```
+
+- Creates a new Set based the values given. If no values are supplied an empty Set is created.
+- config properties:
+  - `cloneValues` when defined clones the values passed in `values` with `structuredClone()`
+  - `filter` when defined filters out all IdValues that the filter function returns `false` to
+  - `transform` when defined transforms the source IdValues and adds the transformed result to the `IdSet`, it maintains the original id as identifier (even though it can be changed in the transformation)
 * It will deep clone the values using `structuredClone()` if `cloneValues` is true.
 
 #### `all$: Observable<IdValue>` 
@@ -422,7 +434,7 @@ unionIdSet.delete(source1);
 
 ### Additional properties and methods
 
-#### `constructor(sourceSets: Iterable<BaseIdSet>)`
+#### `constructor(sourceSets: Iterable<BaseIdSet>, config?: IdSetConfig)`
 - Define the source `IdSets` the `UnionIdSet` operates upon at construction.
 
 #### `add(idSets: OneOrMore<BaseIdSet<IdValue, Id>>)`
@@ -455,7 +467,7 @@ source2.add(value1);
 ```
 
 ### Additional properties and methods
-#### `constructor(sourceSets: Iterable<BaseIdSet>)`
+#### `constructor(sourceSets: Iterable<BaseIdSet>, config?: IdSetConfig)`
 - Define the source `IdSets` the `IntersectionIdSet` operates upon at construction.
 
 #### `add(idSets: OneOrMore<BaseIdSet<IdValue, Id>>)`
@@ -489,7 +501,7 @@ other1.add(value1);
 ```
 
 ### Additional properties and methods
-#### `constructor(sourceSet: IdSet, otherSets: Iterable<BaseIdSet>)`
+#### `constructor(sourceSet: IdSet, otherSets: Iterable<BaseIdSet>, config?: IdSetConfig)`
 - Define the source and other `IdSets` the `DifferenceIdSet` operates upon at construction.
 
 #### `add(idSets: OneOrMore<BaseIdSet<IdValue, Id>>)`

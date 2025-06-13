@@ -2,11 +2,14 @@
 
 ## 4.0.0
 - changed names of some properties to make them more uniform
-- Refactor of UnionIdSet, IntersectionIdSet and DifferenceIdSet
-- made pause() and resume() method public
-- added add() and resume() method to UnionIdSet, IntersectionIdSet and DifferenceIdSet 
+- Refactor of `UnionIdSet`, `IntersectionIdSet` and `DifferenceIdSet`
+- made `pause()` and `resume()` method public
+- added `add()` and `resume()` method to `UnionIdSet`, `IntersectionIdSet` and `DifferenceIdSet` 
 to change the sets they operate upon while active.
-- added replace() method to DifferenceIdSet to change the sourceIdSet while active
+- added `replace()` method to `DifferenceIdSet` to change the sourceIdSet while active
+- added a config structure with options to the IdSet, UnionIdSet, IntersectionIdSet and DifferenceIdSet constructor
+  - `filter` when present contains a function that returs true if an `IdObject` value should be added to the result set
+  - `transform` when present contains a method that returns the transformed `IdObject` value. 
 - updated README
 - updated @angular build environment to 19.2.14
 

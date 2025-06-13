@@ -1,6 +1,5 @@
 import { IdObject, IdSet } from '../public-api';
 
-
 const value1 = { id: '1', value: 'value1' };
 const value2 = { id: '2', value: 'value2' };
 const value3 = { id: '3', value: 'value3' };
@@ -35,7 +34,7 @@ describe('IdSet', () => {
         const created: IdObject[] = [];
         const testObject = new IdSet(idSet123);
 
-        testObject.create$.subscribe(value => created.push(value));
+        testObject.create$.subscribe((value) => created.push(value));
 
         testObject.add(value4);
         expect(created).toEqual([value4]);
@@ -46,7 +45,7 @@ describe('IdSet', () => {
         const published: IdObject[] = [];
         const testObject = new IdSet(idSet123);
 
-        testObject.create$.subscribe(value => published.push(value));
+        testObject.create$.subscribe((value) => published.push(value));
 
         testObject.add(value1update);
         expect(published).toEqual([]);
@@ -59,7 +58,7 @@ describe('IdSet', () => {
         const updated: IdObject[] = [];
         const testObject = new IdSet(idSet123);
 
-        testObject.update$.subscribe(value => updated.push(value));
+        testObject.update$.subscribe((value) => updated.push(value));
 
         testObject.add(value4);
         expect(updated).toEqual([]);
@@ -70,7 +69,7 @@ describe('IdSet', () => {
         const updated: IdObject[] = [];
         const testObject = new IdSet(idSet123);
 
-        testObject.update$.subscribe(value => updated.push(value));
+        testObject.update$.subscribe((value) => updated.push(value));
 
         testObject.add(value1update);
         expect(updated).toEqual([value1update]);
@@ -81,7 +80,7 @@ describe('IdSet', () => {
         const updated: IdObject[] = [];
         const testObject = new IdSet(idSet123);
 
-        testObject.update$.subscribe(value => updated.push(value));
+        testObject.update$.subscribe((value) => updated.push(value));
 
         testObject.add(value1);
         expect(updated).toEqual([]);
@@ -94,7 +93,7 @@ describe('IdSet', () => {
         const added: IdObject[] = [];
         const testObject = new IdSet(idSet123);
 
-        testObject.add$.subscribe(value => added.push(value));
+        testObject.add$.subscribe((value) => added.push(value));
 
         testObject.add(value4);
         expect(added).toEqual([value4]);
@@ -105,7 +104,7 @@ describe('IdSet', () => {
         const added: IdObject[] = [];
         const testObject = new IdSet(idSet123);
 
-        testObject.add$.subscribe(value => added.push(value));
+        testObject.add$.subscribe((value) => added.push(value));
 
         testObject.add(value1); // no publish: same value object added again
         expect(added).toEqual([]);
@@ -120,7 +119,7 @@ describe('IdSet', () => {
         let allAdded: IdObject[] = [];
         const testObject = new IdSet(idSet123);
 
-        testObject.allAdd$.subscribe(value => allAdded.push(value));
+        testObject.allAdd$.subscribe((value) => allAdded.push(value));
         expect(allAdded).toEqual([value1, value2, value3]);
 
         allAdded = [];
@@ -133,7 +132,7 @@ describe('IdSet', () => {
         let allAdded: IdObject[] = [];
         const testObject = new IdSet(idSet123);
 
-        testObject.allAdd$.subscribe(value => allAdded.push(value));
+        testObject.allAdd$.subscribe((value) => allAdded.push(value));
         expect(allAdded).toEqual([value1, value2, value3]);
 
         allAdded = [];
@@ -143,6 +142,37 @@ describe('IdSet', () => {
         expect(allAdded).toEqual([value1]);
         testObject.complete();
       });
+    });
+
+    it('should filter the values if a filter is defined', () => {
+      type IdValue = { id: string; value: number };
+      const value1 = { id: '1', value: 1 };
+      const value2 = { id: '2', value: 2 };
+      const testObject = new IdSet<IdValue>([], {
+        filter: (value: IdValue) => value.value % 2 === 0,
+      });
+      expect(testObject.size).toBe(0);
+      testObject.add(value1);
+      expect(testObject.get(value1.id)).not.toBeDefined();
+      testObject.add(value2);
+      expect(testObject.get(value2.id)).toBe(value2);
+    });
+
+    it('should transform the values if a transform is defined', () => {
+      type IdValue = { id: string; value: number };
+      const value1 = { id: '1', value: 1 };
+      const value2 = { id: '2', value: 2 };
+      const testObject = new IdSet<IdValue>([], {
+        transform: (value: IdValue) => ({
+          id: value.id,
+          value: value.value * 2,
+        }),
+      });
+      testObject.add(value1);
+      testObject.add(value2);
+      expect(testObject.size).toBe(2);
+      expect(testObject.get(value1.id)?.value).toBe(2);
+      expect(testObject.get(value2.id)?.value).toBe(4);
     });
   });
 
@@ -165,7 +195,7 @@ describe('IdSet', () => {
         const published: IdObject[] = [];
         const testObject = new IdSet(idSet123);
 
-        testObject.delete$.subscribe(value => published.push(value));
+        testObject.delete$.subscribe((value) => published.push(value));
 
         testObject.delete(value1.id);
         expect(published).toEqual([value1]);
@@ -181,9 +211,9 @@ describe('IdSet', () => {
       const updatedValues: IdObject[] = [];
       const deletedValues: IdObject[] = [];
 
-      testObject.create$.subscribe(value => createdValues.push(value));
-      testObject.update$.subscribe(value => updatedValues.push(value));
-      testObject.delete$.subscribe(value => deletedValues.push(value));
+      testObject.create$.subscribe((value) => createdValues.push(value));
+      testObject.update$.subscribe((value) => updatedValues.push(value));
+      testObject.delete$.subscribe((value) => deletedValues.push(value));
 
       expect(testObject.replace(idSet124)).toBe(testObject);
       expect(testObject.size).toBe(3);
@@ -217,7 +247,7 @@ describe('IdSet', () => {
       const testObject = new IdSet(idSet123);
       const deletedValues: IdObject[] = [];
 
-      testObject.delete$.subscribe(value => deletedValues.push(value));
+      testObject.delete$.subscribe((value) => deletedValues.push(value));
 
       expect(testObject.clear()).toBe(testObject);
       expect(testObject.size).toBe(0);

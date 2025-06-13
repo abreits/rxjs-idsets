@@ -213,7 +213,7 @@ describe('ContainerIdSet', () => {
   });
 
   describe('export', () => {
-    it('should create the export Iterable that can be used to duplicate an ContainerIdSet', () => {
+    it('should create the export Iterable that can be used to duplicate a ContainerIdSet', () => {
       testObject.add([value1, value2, value3], 'set1');
       testObject.add([value3, value4], 'set2');
 

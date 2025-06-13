@@ -6,7 +6,7 @@ import {
   processDelta,
   UnionIdSet,
 } from '../public-api';
-import { DeltaValue, IdObject } from '../types';
+import { DeltaValue, IdObject, IdSetConfig } from '../types';
 import { OneOrMore } from '../utility/one-or-more';
 
 /**
@@ -23,8 +23,11 @@ export class IntersectionIdSet<
     return this.sourceSets;
   }
 
-  constructor(sourceIdSets: Iterable<BaseIdSet<IdValue, Id>>) {
-    super();
+  constructor(
+    sourceIdSets: Iterable<BaseIdSet<IdValue, Id>>,
+    config?: IdSetConfig<IdValue>
+  ) {
+    super([], config);
     this.sourceSets = new Set(sourceIdSets);
     this.buildIntersectionSet();
     this.processSourceSetDeltas();

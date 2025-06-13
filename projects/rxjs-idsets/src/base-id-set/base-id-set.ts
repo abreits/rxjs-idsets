@@ -1,10 +1,14 @@
 import { from, Subject, concat, merge, Observable, of } from 'rxjs';
-import { DeltaValue, IdObject } from '../types';
+import { DeltaValue, IdObject, IdSetConfig } from '../types';
 
 /**
  * Parent class for all IdSet classes containing all basic functionality
  */
-export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
+export class BaseIdSet<
+  SourceIdValue extends IdObject<Id>,
+  Id = string,
+  IdValue extends IdObject<Id> = SourceIdValue,
+> {
   // do not manipulate these properties directly unless you know what you are doing!
   /** WARNING: Do not use! Use addValue(), deleteId() or clear() */
   protected idMap = new Map<Id, IdValue>();
@@ -16,6 +20,9 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
   protected deleteSubject$ = new Subject<IdValue>();
   /** WARNING: Do not use! Use addValue(), deleteId() or clear() */
   protected deltaSubject$ = new Subject<DeltaValue<IdValue>>();
+
+  private filterFn?: (value: SourceIdValue) => boolean;
+  private transformFn?: (value: SourceIdValue) => IdValue;
 
   /**
    * Is this IdSet being observed
@@ -88,11 +95,22 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
   /**
    * It will deep clone the values if `cloneValues` is true.
    */
-  constructor(values?: Iterable<IdValue>, cloneValues = false) {
-    if (values) {
-      for (let value of values) {
-        value = cloneValues ? structuredClone(value) : value;
-        this.idMap.set(value.id, value);
+  constructor(
+    sourceValues?: Iterable<SourceIdValue>,
+    config?: IdSetConfig<IdValue, SourceIdValue>
+  ) {
+    const cloneValues = config?.cloneValues;
+    this.filterFn = config?.filter;
+    this.transformFn = config?.transform;
+
+    if (sourceValues) {
+      for (let sourceValue of sourceValues) {
+        if (this.filterFn && this.filterFn(sourceValue) == false) continue;
+        sourceValue = cloneValues ? structuredClone(sourceValue) : sourceValue;
+        const value = this.transformFn
+          ? this.transformFn(sourceValue)
+          : (sourceValue as any as IdValue);
+        this.idMap.set(sourceValue.id, value);
       }
     }
   }
@@ -161,8 +179,12 @@ export class BaseIdSet<IdValue extends IdObject<Id>, Id = string> {
    *
    * For use in child classes
    */
-  protected addValue(value: IdValue) {
-    const id = value.id;
+  protected addValue(sourceValue: SourceIdValue) {
+    if (this.filterFn && this.filterFn(sourceValue) == false) return;
+    const value = this.transformFn
+      ? this.transformFn(sourceValue)
+      : (sourceValue as any as IdValue);
+    const id = sourceValue.id;
     const currentValue = this.idMap.get(id);
     if (currentValue !== value) {
       if (currentValue) {

@@ -11,7 +11,11 @@ const value1 = { id: '1' };
 const value2 = { id: '2' };
 
 const testSet = [{ id: '1' }, { id: '2' }, { id: '3' }];
-const testSetEntries = [['1', { id: '1' }], ['2', { id: '2' }], ['3', { id: '3' }]];
+const testSetEntries = [
+  ['1', { id: '1' }],
+  ['2', { id: '2' }],
+  ['3', { id: '3' }],
+];
 const testSetKeys = ['1', '2', '3'];
 
 describe('BaseIdSet', () => {
@@ -32,9 +36,36 @@ describe('BaseIdSet', () => {
     });
 
     it('should clone the values if cloneValues is true', () => {
-      const testObject = new BaseIdSet([value1, value2], true);
+      const testObject = new BaseIdSet([value1, value2], { cloneValues: true });
       expect(testObject.get(value1.id)).not.toBe(value1);
       expect(testObject.get(value1.id)).toEqual(value1);
+    });
+
+    it('should filter the values if a filter is defined', () => {
+      type IdValue = { id: string; value: number };
+      const value1 = { id: '1', value: 1 };
+      const value2 = { id: '2', value: 2 };
+      const testObject = new BaseIdSet<IdValue>([value1, value2], {
+        filter: (value: IdValue) => value.value % 2 === 0,
+      });
+      expect(testObject.size).toBe(1);
+      expect(testObject.get(value1.id)).not.toBeDefined();
+      expect(testObject.get(value2.id)).toBe(value2);
+    });
+
+    it('should transform the values if a transform is defined', () => {
+      type IdValue = { id: string; value: number };
+      const value1 = { id: '1', value: 1 };
+      const value2 = { id: '2', value: 2 };
+      const testObject = new BaseIdSet<IdValue>([value1, value2], {
+        transform: (value: IdValue) => ({
+          id: value.id,
+          value: value.value * 2,
+        }),
+      });
+      expect(testObject.size).toBe(2);
+      expect(testObject.get(value1.id)?.value).toBe(2);
+      expect(testObject.get(value2.id)?.value).toBe(4);
     });
   });
 
@@ -85,7 +116,7 @@ describe('BaseIdSet', () => {
       const testObject = new BaseIdSet(testSet);
       const received: IdObject[] = [];
 
-      testObject.all$.subscribe(value => received.push(value));
+      testObject.all$.subscribe((value) => received.push(value));
       expect(received).toEqual(testSet);
       expect(testObject.observed).toBeFalse();
     });
@@ -148,7 +179,9 @@ describe('BaseIdSet', () => {
       const testObject = new BaseIdSet(testSet);
       const results: IdObject[] = [];
 
-      const subscription = testObject.allAdd$.subscribe(value => results.push(value));
+      const subscription = testObject.allAdd$.subscribe((value) =>
+        results.push(value)
+      );
       expect(results).toEqual(testSet);
       expect(subscription.closed).toBeFalse();
       expect(testObject.observed).toBeTrue();
@@ -173,7 +206,9 @@ describe('BaseIdSet', () => {
     it('should return a DeltaValue create observable when a value is added to the set', () => {
       const testObject = new IdSet(); // use IdSet to test modifications
       let result: DeltaValue<IdObject> | undefined;
-      const subscription = testObject.delta$.subscribe(value => result = value);
+      const subscription = testObject.delta$.subscribe(
+        (value) => (result = value)
+      );
 
       testObject.add({ id: '1' });
       expect(result).toEqual({ create: { id: '1' } });
@@ -184,7 +219,9 @@ describe('BaseIdSet', () => {
     it('should return a DeltaValue update observable when a value is updated in the set', () => {
       const testObject = new IdSet(testSet); // use IdSet to test modifications
       let result: DeltaValue<IdObject> | undefined;
-      const subscription = testObject.delta$.subscribe(value => result = value);
+      const subscription = testObject.delta$.subscribe(
+        (value) => (result = value)
+      );
 
       testObject.add({ id: '1' });
       expect(result).toEqual({ update: { id: '1' } });
@@ -195,7 +232,9 @@ describe('BaseIdSet', () => {
     it('should return a DeltaValue delete observable when a value is deleted from the set', () => {
       const testObject = new IdSet(testSet); // use IdSet to test modifications
       let result: DeltaValue<IdObject> | undefined;
-      const subscription = testObject.delta$.subscribe(value => result = value);
+      const subscription = testObject.delta$.subscribe(
+        (value) => (result = value)
+      );
 
       testObject.delete('1');
       expect(result).toEqual({ delete: { id: '1' } });
@@ -209,9 +248,11 @@ describe('BaseIdSet', () => {
       const testObject = new BaseIdSet(testSet);
       const results: IdObject[] = [];
 
-      const subscription = testObject.allDelta$.subscribe(delta => processDelta(delta, {
-        create: value => results.push(value)
-      }));
+      const subscription = testObject.allDelta$.subscribe((delta) =>
+        processDelta(delta, {
+          create: (value) => results.push(value),
+        })
+      );
       expect(results).toEqual(testSet);
       expect(subscription.closed).toBeFalse();
       expect(testObject.observed).toBeTrue();
@@ -268,7 +309,7 @@ describe('BaseIdSet', () => {
     it('should implement forEach()', () => {
       const testObject = new BaseIdSet(testSet);
       const results: IdObject[] = [];
-      testObject.forEach(value => results.push(value));
+      testObject.forEach((value) => results.push(value));
       expect(results).toEqual(testSet);
     });
 
@@ -304,10 +345,11 @@ describe('BaseIdSet', () => {
   });
 
   describe('pause and resume', () => {
-
     it('should throw an error when a resume is called without a previous pause', () => {
       const testIdSet = new IdSet(testSet);
-      expect(() => testIdSet.resume()).toThrowError('IdSet error: resume() called with no pause() pending');
+      expect(() => testIdSet.resume()).toThrowError(
+        'IdSet error: resume() called with no pause() pending'
+      );
     });
 
     describe('test combinations for delta$ subscription ', () => {
@@ -321,15 +363,21 @@ describe('BaseIdSet', () => {
 
         testIdSet = new IdSet(testSet);
 
-        testIdSet.delta$.subscribe(delta => {
+        testIdSet.delta$.subscribe((delta) => {
           if (delta.create) {
-            oneOrMoreForEach(delta.create, value => deltaResults.push('create ' + value.id));
+            oneOrMoreForEach(delta.create, (value) =>
+              deltaResults.push('create ' + value.id)
+            );
           }
           if (delta.update) {
-            oneOrMoreForEach(delta.update, value => deltaResults.push('update ' + value.id));
+            oneOrMoreForEach(delta.update, (value) =>
+              deltaResults.push('update ' + value.id)
+            );
           }
           if (delta.delete) {
-            oneOrMoreForEach(delta.delete, value => deltaResults.push('delete ' + value.id));
+            oneOrMoreForEach(delta.delete, (value) =>
+              deltaResults.push('delete ' + value.id)
+            );
           }
           deltaResultsCount++;
         });
@@ -368,15 +416,21 @@ describe('BaseIdSet', () => {
       it('should send paused updates after resume async', fakeAsync(() => {
         const asyncResults: string[] = [];
 
-        testIdSet.delta$.pipe(delay(1)).subscribe(delta => {
+        testIdSet.delta$.pipe(delay(1)).subscribe((delta) => {
           if (delta.create) {
-            oneOrMoreForEach(delta.create, value => asyncResults.push('create ' + value.id));
+            oneOrMoreForEach(delta.create, (value) =>
+              asyncResults.push('create ' + value.id)
+            );
           }
           if (delta.update) {
-            oneOrMoreForEach(delta.update, value => asyncResults.push('update ' + value.id));
+            oneOrMoreForEach(delta.update, (value) =>
+              asyncResults.push('update ' + value.id)
+            );
           }
           if (delta.delete) {
-            oneOrMoreForEach(delta.delete, value => asyncResults.push('delete ' + value.id));
+            oneOrMoreForEach(delta.delete, (value) =>
+              asyncResults.push('delete ' + value.id)
+            );
           }
         });
 
@@ -424,7 +478,6 @@ describe('BaseIdSet', () => {
         testIdSet.delete('2');
         testIdSet.add({ id: '2' }); // recreate
 
-
         testIdSet.resume();
 
         expect(deltaResults).toEqual(['update 2']);
@@ -441,7 +494,13 @@ describe('BaseIdSet', () => {
 
         testIdSet.resume();
 
-        expect(deltaResults).toEqual(['create 4', 'create 5', 'update 3', 'delete 1', 'delete 2']);
+        expect(deltaResults).toEqual([
+          'create 4',
+          'create 5',
+          'update 3',
+          'delete 1',
+          'delete 2',
+        ]);
         expect(deltaResultsCount).toBe(1);
       });
 
@@ -465,7 +524,13 @@ describe('BaseIdSet', () => {
 
         testIdSet.resume();
 
-        expect(deltaResults).toEqual(['create 4', 'create 5', 'update 3', 'delete 1', 'delete 2']);
+        expect(deltaResults).toEqual([
+          'create 4',
+          'create 5',
+          'update 3',
+          'delete 1',
+          'delete 2',
+        ]);
         expect(deltaResultsCount).toBe(1);
       });
     });
@@ -483,9 +548,15 @@ describe('BaseIdSet', () => {
 
         testIdSet = new IdSet(testSet);
 
-        testIdSet.create$.subscribe(created => createResults.push(created.id));
-        testIdSet.update$.subscribe(updated => updateResults.push(updated.id));
-        testIdSet.delete$.subscribe(deleted => deleteResults.push(deleted.id));
+        testIdSet.create$.subscribe((created) =>
+          createResults.push(created.id)
+        );
+        testIdSet.update$.subscribe((updated) =>
+          updateResults.push(updated.id)
+        );
+        testIdSet.delete$.subscribe((deleted) =>
+          deleteResults.push(deleted.id)
+        );
       });
 
       afterEach(() => {
@@ -583,10 +654,7 @@ describe('BaseIdSet', () => {
 });
 
 class TestClass {
-  constructor(
-    public id: string,
-    public property: string
-  ) { }
+  constructor(public id: string, public property: string) {}
 
   public method() {
     return this.id + this.property;
@@ -599,7 +667,7 @@ describe('Test readonly results', () => {
     const testIdSet = new BaseIdSet([testItem]);
 
     let resultItem!: TestClass;
-    testIdSet.all$.subscribe(item => {
+    testIdSet.all$.subscribe((item) => {
       resultItem = item;
       expect(item.method()).toEqual('idproperty');
     });
