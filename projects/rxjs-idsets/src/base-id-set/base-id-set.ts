@@ -7,7 +7,7 @@ import { DeltaValue, IdObject, IdSetConfig } from '../types';
 export class BaseIdSet<
   SourceIdValue extends IdObject<Id>,
   Id = string,
-  IdValue extends IdObject<Id> = SourceIdValue,
+  IdValue extends IdObject<Id> = SourceIdValue
 > {
   // do not manipulate these properties directly unless you know what you are doing!
   /** WARNING: Do not use! Use addValue(), deleteId() or clear() */
@@ -21,8 +21,14 @@ export class BaseIdSet<
   /** WARNING: Do not use! Use addValue(), deleteId() or clear() */
   protected deltaSubject$ = new Subject<DeltaValue<IdValue>>();
 
-  private filterFn?: (value: SourceIdValue) => boolean;
-  private transformFn?: (value: SourceIdValue) => IdValue;
+  private filterFn?: (
+    value: SourceIdValue,
+    idSet: BaseIdSet<SourceIdValue, Id, IdValue>
+  ) => boolean;
+  private transformFn?: (
+    value: SourceIdValue,
+    idSet: BaseIdSet<SourceIdValue, Id, IdValue>
+  ) => IdValue;
 
   /**
    * Is this IdSet being observed
@@ -105,10 +111,10 @@ export class BaseIdSet<
 
     if (sourceValues) {
       for (let sourceValue of sourceValues) {
-        if (this.filterFn && this.filterFn(sourceValue) == false) continue;
+        if (this.filterFn && this.filterFn(sourceValue, this) == false) continue;
         sourceValue = cloneValues ? structuredClone(sourceValue) : sourceValue;
         const value = this.transformFn
-          ? this.transformFn(sourceValue)
+          ? this.transformFn(sourceValue, this)
           : (sourceValue as any as IdValue);
         this.idMap.set(sourceValue.id, value);
       }
@@ -180,9 +186,9 @@ export class BaseIdSet<
    * For use in child classes
    */
   protected addValue(sourceValue: SourceIdValue) {
-    if (this.filterFn && this.filterFn(sourceValue) == false) return;
+    if (this.filterFn && this.filterFn(sourceValue, this) == false) return;
     const value = this.transformFn
-      ? this.transformFn(sourceValue)
+      ? this.transformFn(sourceValue, this)
       : (sourceValue as any as IdValue);
     const id = sourceValue.id;
     const currentValue = this.idMap.get(id);

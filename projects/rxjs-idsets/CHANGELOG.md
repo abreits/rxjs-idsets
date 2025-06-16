@@ -1,5 +1,8 @@
 # Change Log
 
+## 4.1.0
+- added the current IdSet as (optional) second parameter to the `filter` and `transform` methods
+
 ## 4.0.0
 - changed names of some properties to make them more uniform
 - Refactor of `UnionIdSet`, `IntersectionIdSet` and `DifferenceIdSet`

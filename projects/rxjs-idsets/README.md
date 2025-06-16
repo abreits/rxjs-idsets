@@ -295,20 +295,22 @@ The methods and properties that define the basic functionality of the `IdSet` cl
 ``` typescript
 type IdSetConfig<SourceIdValue, ResultIdValue=SourceIdValue> = {
   cloneValues?: boolean;
-  filter?: (value: SourceIdValue) => boolean;
-  transform?: (value: SourceIdValue) => ResultIdValue;
+  filter?: (value: SourceIdValue, idSet: BaseIdSet) => boolean;
+  transform?: (value: SourceIdValue, idSet: BaseIdSet) => ResultIdValue;
 }
 ```
 
-- Creates a new Set based the values given. If no values are supplied an empty Set is created.
+- Creates a new Set based the values given. If no values are supplied an empty Set is created
 - config properties:
   - `cloneValues` when defined clones the values passed in `values` with `structuredClone()`
-  - `filter` when defined filters out all IdValues that the filter function returns `false` to
-  - `transform` when defined transforms the source IdValues and adds the transformed result to the `IdSet`, it maintains the original id as identifier (even though it can be changed in the transformation)
-* It will deep clone the values using `structuredClone()` if `cloneValues` is true.
+  - `filter` when defined filters out all IdValues that the filter function returns `false` to,
+    the `idSet` parameter contains a reference to this idSet
+  - `transform` when defined transforms the source IdValues and adds the transformed result to 
+     the `IdSet`, it maintains the original id as identifier (even though it can be changed in the transformation), the `idSet` parameter contains a reference to this idSet
+* It will deep clone the values using `structuredClone()` if `cloneValues` is true
 
 #### `all$: Observable<IdValue>` 
-- Observable that returns all values currently in the set one by one and then completes.
+- Observable that returns all values currently in the set one by one and then completes
 
 #### `create$: Observable<IdValue>`
 - If a new value is added to the Set, this Observable returns that value
